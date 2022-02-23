@@ -1,0 +1,19 @@
+{
+  "name": "ddu-eksamensprojekt",
+  "version": "1.0.0",
+  "description": "A take on richochet robots",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imrying/ddu-eksamensprojekt.git"
+  },
+  "author": "Benjamin Boholt Hilton, Marius Johan Schlictkrull, Philip Rying",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/imrying/ddu-eksamensprojekt/issues"
+  },
+  "homepage": "https://github.com/imrying/ddu-eksamensprojekt#readme"
+}
