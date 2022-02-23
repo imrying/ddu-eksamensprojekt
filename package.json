@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/imrying/ddu-eksamensprojekt/issues"
   },
-  "homepage": "https://github.com/imrying/ddu-eksamensprojekt#readme"
+  "homepage": "https://github.com/imrying/ddu-eksamensprojekt#readme",
+  "dependencies": {
+    "express": "^4.17.3"
+  }
 }
