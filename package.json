@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/imrying/ddu-eksamensprojekt#readme",
   "dependencies": {
-    "express": "^4.17.3"
+    "express": "^4.17.3",
+    "mysql": "^2.18.1",
+    "p5": "^1.4.1"
   }
 }
