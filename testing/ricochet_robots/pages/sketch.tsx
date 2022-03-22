@@ -9,82 +9,77 @@ const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default), {
 
 let x = 50;
 let y = 50;
-const BOARD_LENGTH = 720;
+const BOARD_LENGTH = 800;
+const UNIT_LENGTH = 50;
 
 export default (props) => {
+
+    var gameobjects = [];
+    
 	const setup = (p5, canvasParentRef) => {
 		p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
-    drawBoard(p5)
+        gameobjects.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
+        gameobjects.push(new game_piece(0, 12, 1, p5.color(100, 200, 9)));
+        gameobjects.push(new game_piece(0, 12, 3, p5.color(240, 200, 50)));
+        gameobjects.push(new game_piece(0, 2, 7, p5.color(100, 0, 50)));
+        gameobjects.push(new target_piece(1, 1, 1, p5.color(50, 50, 99)));
 	};
 
 	const draw = (p5) => {
+        p5.background(255,255,255);
+        drawBoard(p5);
+        for (const g of gameobjects)
+        {
+            g.render(p5);
+        }
 	};
 
-   const drawBoard = (p5) => {
-        for (let x = 0; x < 16; x++) {
-            for (let y = 0; y < 16; y++) {
-                if (grid[y][x] == 'blank') {
-                    blank(p5, x*45,y*45);
-                } else if (grid[y][x] == 't_wall') {
-                    t_wall(p5, x*45,y*45);
-                } else if (grid[y][x] == 'tl_wall') {
-                    t_wall(p5, x * 45, y * 45);
-                    l_wall(p5, x * 45, y * 45);
-                } else if (grid[y][x] == 'tr_wall') {
-                    t_wall(p5, x  *  45 ,   y * 45);
-                    r_wall(p5, x * 45, y * 45);
-                } else if (grid[y][x] == 'b_wall') {
-                    b_wall(p5, x*45,y*45);
-                } else if (grid[y][x] == 'bl_wall') {
-                    b_wall(p5, x*45,y*45);
-                    l_wall(p5, x*45,y*45);
-                } else if (grid[y][x] == 'br_wall') {
-                    b_wall(p5, x * 45, y * 45);
-                    r_wall(p5, x * 45, y * 45);
-                } else if (grid[y][x] == 'l_wall') {
-                    l_wall(p5, x*45,y*45);
-                } else if (grid[y][x] == 'r_wall') {
-                    r_wall(p5, x * 45, y * 45);
-                }
-            }
+    const drawBoard = (p5) => {
+        for (let i = 0; i < 17; i++)
+        {
+            p5.line(UNIT_LENGTH*i,0, UNIT_LENGTH*i, BOARD_LENGTH);
+            p5.line(0, UNIT_LENGTH*i, BOARD_LENGTH, UNIT_LENGTH*i);
         }
-        p5.strokeWeight(1);
-        p5.line(0, BOARD_LENGTH, BOARD_LENGTH, BOARD_LENGTH);
-        p5.line(BOARD_LENGTH, 0, BOARD_LENGTH, BOARD_LENGTH);
-        p5.line(0, 0, 0, BOARD_LENGTH);
-    };
+    }
 
-    const blank = (p5, x, y) => {
-      p5.stroke(0);
-      p5.strokeWeight(1);
-      p5.line(x, 0, x, x*45);
-      p5.line(0, y, x*45, y);
-    };
+    class game_piece {
+        constructor(id, pos_x, pos_y, color) {
+            this.id = id;
+            this.pos_x = pos_x;
+            this.pos_y = pos_y;
+            this.color = color;
+        }
 
-    const t_wall = (p5, x, y) => {
-      p5.stroke(0);
-      p5.strokeWeight(5);
-      p5.line(x, y, x+45, y);
-    };
+        render(p5) {
+            console.log(this.color);
+            p5.fill(this.color);
+            p5.circle(
+                this.pos_x * UNIT_LENGTH + UNIT_LENGTH / 2,
+                this.pos_y * UNIT_LENGTH + UNIT_LENGTH / 2,
+                30
+            );
+        }
+    }
 
-    const b_wall = (p5, x, y) => {
-        p5.stroke(0);
-        p5.strokeWeight(5);
-        p5.line(x, y+45, x+45, y+45);
-    };
+    class target_piece {
+        constructor(id, pos_x, pos_y, color) {
+            this.id = id;
+            this.pos_x = pos_x;
+            this.pos_y = pos_y;
+            this.color = color;
+        }
 
-    const l_wall = (p5, x, y) => {
-        p5.stroke(0);
-        p5.strokeWeight(5);
-        p5.line(x, y, x, y+45);
-    };
+        render(p5)
+        {
+            p5.fill(this.color);
+            p5.rect(this.pos_x * UNIT_LENGTH, this.pos_y * UNIT_LENGTH, UNIT_LENGTH, UNIT_LENGTH);
+        }
+    }
 
-    const r_wall = (p5, x, y) => {
-        p5.stroke(0);
-        p5.strokeWeight(5);
-        p5.line(x+45, y, x+45, y+45);
-    };
+    class wall {
+        constructor()
+    }
 
-// Will only render on client-side
+    // Will only render on client-side
 	return <Sketch setup={setup} draw={draw} />;
 };
