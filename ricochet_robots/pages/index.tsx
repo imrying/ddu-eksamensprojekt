@@ -32,7 +32,7 @@ export default function Home() {
       ) : (
         <div className="container-fluid">
           <div className="row">
-              <div className="col-lg-4">
+              <div className="col-lg-2">
 
                 <div className="card m-5">
                   <div className="card-body">
@@ -42,11 +42,12 @@ export default function Home() {
                       <div className="form-group">
                         <label htmlFor="code">Code</label>
                         <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" required />
-                        <small id="code" className="form-text text-muted">4 nubmers only</small>
+                        <small id="code" className="form-text text-muted">4 numbers only</small>
                       </div>
                       
                       <button type="submit" className="btn btn-primary">Submit</button>
                     </form>
+                    <a href="#" className="link-primary">Create lobby instead</a>
                   </div>
                 </div>
 
