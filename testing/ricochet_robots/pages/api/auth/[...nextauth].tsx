@@ -2,6 +2,11 @@ import NextAuth from "next-auth"
 import GithubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google";
 
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
+import * as Prisma from "@prisma/client"
+
+const prisma = new Prisma.PrismaClient();
+
 export default NextAuth({
   // Configure one or more authentication providers
   providers: [
@@ -19,5 +24,6 @@ export default NextAuth({
   secret: process.env.AUTH_SECRET,
   jwt: {
     secret: process.env.JWT_SECRET,
-  }
+  },
+  adapter: PrismaAdapter(prisma),
 })
