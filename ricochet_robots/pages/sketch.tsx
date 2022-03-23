@@ -20,10 +20,11 @@ var canvasParentRef;
 
 export default function Game(props)
 {
-    
     var gamepieces: Array<game_piece> = [];
     var walls: Array<wall> = [];
-    var targets: Array<target_piece> = [];
+    var targets: Array<highlight_piece> = [];
+    var highlight_targets: Array<highlight_piece> = [];
+    var selected_piece: game_piece;
     
 	const setup = (p5: any, canvasParentRef: any) => 
     {
@@ -31,10 +32,10 @@ export default function Game(props)
         UNIT_LENGTH = BOARD_LENGTH/16;
 		p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
         gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
-        gamepieces.push(new game_piece(0, 12, 1, p5.color(100, 200, 9)));
-        gamepieces.push(new game_piece(0, 12, 3, p5.color(240, 200, 50)));
+        gamepieces.push(new game_piece(0, 7, 4, p5.color(100, 200, 9)));
+        gamepieces.push(new game_piece(0, 12, 4, p5.color(240, 200, 50)));
         gamepieces.push(new game_piece(0, 2, 7, p5.color(100, 0, 50)));
-        targets.push(new target_piece(1, 1, 1, p5.color(50, 50, 99)));
+        targets.push(new highlight_piece(1, 1, 1, p5.color(50, 50, 99)));
         walls.push(new wall(true, 4, 4));
         walls.push(new wall(false, 4, 4));
 	};
@@ -47,11 +48,15 @@ export default function Game(props)
         {
             g.render(p5);
         }
-        for (const g of walls)
+        for (const g of targets)
         {
             g.render(p5);
         }
-        for (const g of targets)
+        for (const g of highlight_targets)
+        {
+            g.render(p5);
+        }
+        for (const g of walls)
         {
             g.render(p5);
         }
@@ -61,12 +66,20 @@ export default function Game(props)
     {
         var pos_x = Math.floor(e.clientX/UNIT_LENGTH);
         var pos_y = Math.floor((e.clientY-TOP_BAR_HEIGHT)/UNIT_LENGTH);
-        for (const g of gamepieces)
+        var new_selection = false;
+        for (var g of gamepieces)
         {
-            if (g.pos_x == pos_x && g.pos_y == pos_y)
+            if (g.pos_x == pos_x && g.pos_y == pos_y && g != selected_piece)
             {
-                console.log("HOLLO BOLLO");
+                selected_piece = g;
+                new_selection = true;
+                generate_highlight_squares(p5, selected_piece);
+                break;
             }
+        }
+        if (new_selection == false)
+        {
+            selected_piece = null;
         }
     };
 
@@ -78,6 +91,40 @@ export default function Game(props)
             p5.line(UNIT_LENGTH*i,0, UNIT_LENGTH*i, BOARD_LENGTH);
             p5.line(0, UNIT_LENGTH*i, BOARD_LENGTH, UNIT_LENGTH*i);
         }
+    }
+
+    function generate_highlight_squares(p5, piece)
+    {
+        let left = piece.pos_x; 
+        let collision = false;
+        while (left > 0 && collision == false)
+        {
+            for (var w of walls) 
+            {
+                if (w.vertical == true && w.pos_x == left -1 && w.pos_y == piece.pos_y) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
+
+            for (var g of gamepieces) 
+            {
+                if (g.pos_x == left -1 && g.pos_y == piece.pos_y) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
+
+            if (!collision) 
+            {
+                highlight_targets.push(new highlight_piece(0, left-1, piece.pos_y, p5.color(100,100,0)))
+            }
+            left --;
+        }
+        highlight_targets[highlight_targets.length-1].color = p5.color(200,200,0); 
+        // this.hightlightPieces
     }
 
     class game_piece
@@ -101,7 +148,7 @@ export default function Game(props)
         }
     }
 
-    class target_piece 
+    class highlight_piece 
     {
         constructor(id, pos_x, pos_y, color) 
         {
@@ -121,9 +168,9 @@ export default function Game(props)
 
     class wall 
     {
-        constructor(vert, pos_x, pos_y) 
+        constructor(vertical, pos_x, pos_y) 
         {
-            this.vert = vert;
+            this.vertical = vertical;
             this.pos_x = pos_x;
             this.pos_y = pos_y;
         }
@@ -131,7 +178,7 @@ export default function Game(props)
         render(p5) {
             p5.fill(0);
             p5.strokeWeight(5);
-            if (this.vert) 
+            if (this.vertical) 
             {
                 p5.line(UNIT_LENGTH * (this.pos_x+1), UNIT_LENGTH * this.pos_y,UNIT_LENGTH * (this.pos_x+1), UNIT_LENGTH * (1+this.pos_y));
             } else {
