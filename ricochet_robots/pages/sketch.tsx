@@ -12,7 +12,7 @@ let y = 50;
 const BOARD_LENGTH = 800;
 const UNIT_LENGTH = 50;
 
-export default (props) => {
+export default function Game(props) {
 
     var gameobjects = [];
     
@@ -83,3 +83,4 @@ export default (props) => {
     // Will only render on client-side
 	return <Sketch setup={setup} draw={draw} />;
 };
+
