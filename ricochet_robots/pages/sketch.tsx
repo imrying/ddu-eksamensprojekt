@@ -33,15 +33,28 @@ export default function Game(props)
     {
         BOARD_LENGTH = window.innerHeight-TOP_BAR_HEIGHT-20;
         UNIT_LENGTH = BOARD_LENGTH/16;
+
 		p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
+
         gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
         gamepieces.push(new game_piece(0, 7, 4, p5.color(100, 200, 9)));
-        gamepieces.push(new game_piece(0, 12, 4, p5.color(240, 200, 50)));
-        gamepieces.push(new game_piece(0, 6, 4, p5.color(240, 200, 50)));
-        gamepieces.push(new game_piece(0, 2, 7, p5.color(100, 0, 50)));
-        targets.push(new highlight_piece(1, 1, 1, p5.color(50, 50, 99)));
-        walls.push(new wall(true, 4, 4));
-        walls.push(new wall(false, 4, 4));
+
+        targets.push(new highlight_piece(0, 7, 7, p5.color(50, 50, 99)));
+
+        var wall_pos_vert: Array<[number, number]> = [];
+        wall_pos_vert = [[4,0], [10,0], [6,1], [8,1],[0,2], [14,2],[10,4], [6,5], [1,6],[11,6], [6,7], [6,8],[8,7], [8,8], [5,8], [1,10], [10,10],[12,11], [10,12], [3,13], [12,13],[5,14], [4,15], [9,15] ];
+        var wall_pos_horz: Array<[number, number]> = [];
+        wall_pos_horz = [[1,1], [6,1], [9,1], [14,1], [0,5], [6,4], [10,4], [15,4], [12,5], [2,6], [7,6], [8,6], [5,8], [7,8], [8,8], [2,9], [11,9], [0,11], [10,11], [13,11], [15,11], [4,12], [12,13], [6,14]];
+        for (var x of wall_pos_vert)
+        {
+            walls.push(new wall(true, x[0], x[1]));
+        }
+        for (var x of wall_pos_horz)
+        {
+            walls.push(new wall(false, x[0], x[1]));
+        }
+        // walls.push(new wall(true, 4, 4));
+        // walls.push(new wall(false, 4, 4));
 	};
 
 	const draw = (p5: any) =>
@@ -115,6 +128,10 @@ export default function Game(props)
             p5.line(0, UNIT_LENGTH*i, BOARD_LENGTH, UNIT_LENGTH*i);
         }
     }
+
+    function randomIntFromInterval(min, max) { // min and max included 
+        return Math.floor(Math.random() * (max - min + 1) + min)
+      }
 
     function generate_highlight_squares(p5, piece)
     {
