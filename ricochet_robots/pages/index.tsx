@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
 import { useSession, signIn, signOut } from "next-auth/react"
+import Game from './sketch'
 
 
 export default function Home() {
@@ -32,7 +33,7 @@ export default function Home() {
       ) : (
         <div className="container-fluid">
           <div className="row">
-              <div className="col-lg-2">
+              <div className="col-lg-4">
 
                 <div className="card m-5">
                   <div className="card-body">
@@ -53,7 +54,7 @@ export default function Home() {
 
               </div>
               <div className="col-lg-8">
-                  Container Right
+                  <Game/>
               </div>
           </div>
         </div>
