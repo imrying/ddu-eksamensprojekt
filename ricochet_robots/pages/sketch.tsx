@@ -1,7 +1,7 @@
 import React from "react";
-import dynamic from 'next/dynamic'
-import grid from './constants'
-// import game_piece from './game_classes'
+import dynamic from 'next/dynamic';
+import grid from './constants';
+import game_piece from './game_classes';
 import { Redirect } from 'react-router-dom';
 
 // Will only import `react-p5` on client-side
@@ -35,6 +35,7 @@ export default function Game(props)
         gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
         gamepieces.push(new game_piece(0, 7, 4, p5.color(100, 200, 9)));
         gamepieces.push(new game_piece(0, 12, 4, p5.color(240, 200, 50)));
+        gamepieces.push(new game_piece(0, 7, 7, p5.color(240, 200, 50)));
         gamepieces.push(new game_piece(0, 2, 7, p5.color(100, 0, 50)));
         targets.push(new highlight_piece(1, 1, 1, p5.color(50, 50, 99)));
         walls.push(new wall(true, 4, 4));
@@ -45,15 +46,15 @@ export default function Game(props)
     {
         p5.background(255,255,255);
         drawBoard(p5);
-        for (const g of gamepieces)
-        {
-            g.render(p5);
-        }
         for (const g of targets)
         {
             g.render(p5);
         }
         for (const g of highlight_targets)
+        {
+            g.render(p5);
+        }
+        for (const g of gamepieces)
         {
             g.render(p5);
         }
@@ -98,13 +99,14 @@ export default function Game(props)
 
     function generate_highlight_squares(p5, piece)
     {
-        let left = piece.pos_x; 
+        highlight_targets.push(new highlight_piece(0, piece.pos_x, piece.pos_y, p5.color(255,255,0, 90)))
+        let horz = piece.pos_x; 
         let collision = false;
-        while (left > 0 && collision == false)
+        while (horz > 0 && collision == false)
         {
             for (var w of walls) 
             {
-                if (w.vertical == true && w.pos_x == left -1 && w.pos_y == piece.pos_y) 
+                if (w.vertical == true && w.pos_x == horz -1 && w.pos_y == piece.pos_y) 
                 {
                     collision = true;
                     break; 
@@ -113,7 +115,7 @@ export default function Game(props)
 
             for (var g of gamepieces) 
             {
-                if (g.pos_x == left -1 && g.pos_y == piece.pos_y) 
+                if (g.pos_x == horz -1 && g.pos_y == piece.pos_y) 
                 {
                     collision = true;
                     break; 
@@ -122,54 +124,113 @@ export default function Game(props)
 
             if (!collision) 
             {
-                highlight_targets.push(new highlight_piece(0, left-1, piece.pos_y, p5.color(255,255,0, 90)))
+                highlight_targets.push(new highlight_piece(0, horz-1, piece.pos_y, p5.color(255,255,0, 90)))
             }
-            left --;
+            horz --;
         }
         highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0);
-        // left = piece.pos_x; 
-        // collision = false;
-        // while (left > 0 && collision == false)
-        // {
-        //     for (var w of walls) 
-        //     {
-        //         if (w.vertical == true && w.pos_x == left -1 && w.pos_y == piece.pos_y) 
-        //         {
-        //             collision = true;
-        //             break; 
-        //         }
-        //     }
+        //////////////////////////////////////////////////////////////////////////////////////////////////
+        horz = piece.pos_x; 
+        collision = false;
+        while (horz < 15 && collision == false)
+        {
+            for (var w of walls) 
+            {
+                if (w.vertical == true && w.pos_x == horz +1 && w.pos_y == piece.pos_y) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
 
-        //     for (var g of gamepieces) 
-        //     {
-        //         if (g.pos_x == left -1 && g.pos_y == piece.pos_y) 
-        //         {
-        //             collision = true;
-        //             break; 
-        //         }
-        //     }
+            for (var g of gamepieces) 
+            {
+                if (g.pos_x == horz +1 && g.pos_y == piece.pos_y) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
 
-        //     if (!collision) 
-        //     {
-        //         highlight_targets.push(new highlight_piece(0, left-1, piece.pos_y, p5.color(255,255,0)))
-        //     }
-        //     left --;
-        // }
-        // highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0); 
+            if (!collision) 
+            {
+                highlight_targets.push(new highlight_piece(0, horz+1, piece.pos_y, p5.color(255,255,0,90)))
+            }
+            horz++;
+        }
+        highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0);
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+        let vert = piece.pos_y; 
+        collision = false;
+        while (vert < 15 && collision == false)
+        {
+            for (var w of walls) 
+            {
+                if (w.vertical == false && w.pos_x == piece.pos_x && w.pos_y == vert+1) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
+
+            for (var g of gamepieces) 
+            {
+                if (g.pos_x ==piece.pos_x && g.pos_y == vert+1) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
+
+            if (!collision) 
+            {
+                highlight_targets.push(new highlight_piece(0, piece.pos_x, vert+1, p5.color(255,255,0,90)))
+            }
+            vert++;
+        }
+        highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0); 
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+        vert = piece.pos_y; 
+        collision = false;
+        while (vert > 0 && collision == false)
+        {
+            for (var w of walls) 
+            {
+                if (w.vertical == false && w.pos_x == piece.pos_x && w.pos_y == vert-1) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
+
+            for (var g of gamepieces) 
+            {
+                if (g.pos_x ==piece.pos_x && g.pos_y == vert-1) 
+                {
+                    collision = true;
+                    break; 
+                }
+            }
+
+            if (!collision) 
+            {
+                highlight_targets.push(new highlight_piece(0, piece.pos_x, vert-1, p5.color(255,255,0,90)))
+            }
+            vert--;
+        }
+        highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0); 
     }
 
-    class game_piece
-    {
-        constructor(id, pos_x, pos_y, color)
-        {
+    // Will only render on client-side
+    class game_piece {
+        constructor(id, pos_x, pos_y, color) {
             this.id = id;
             this.pos_x = pos_x;
             this.pos_y = pos_y;
             this.color = color;
         }
 
-        render(p5) 
-        {
+        render(p5) {
             p5.fill(this.color);
             p5.circle(
                 this.pos_x * UNIT_LENGTH + UNIT_LENGTH / 2,
@@ -179,28 +240,23 @@ export default function Game(props)
         }
     }
 
-    class highlight_piece 
-    {
-        constructor(id, pos_x, pos_y, color) 
-        {
+    class highlight_piece {
+        constructor(id, pos_x, pos_y, color) {
             this.id = id;
             this.pos_x = pos_x;
             this.pos_y = pos_y;
             this.color = color;
         }
 
-        render(p5) 
-        {
+        render(p5) {
             p5.strokeWeight(1);
             p5.fill(this.color);
             p5.rect(this.pos_x * UNIT_LENGTH, this.pos_y * UNIT_LENGTH, UNIT_LENGTH, UNIT_LENGTH);
         }
     }
 
-    class wall 
-    {
-        constructor(vertical, pos_x, pos_y) 
-        {
+    class wall {
+        constructor(vertical, pos_x, pos_y) {
             this.vertical = vertical;
             this.pos_x = pos_x;
             this.pos_y = pos_y;
@@ -209,17 +265,14 @@ export default function Game(props)
         render(p5) {
             p5.fill(0);
             p5.strokeWeight(5);
-            if (this.vertical) 
-            {
-                p5.line(UNIT_LENGTH * (this.pos_x+1), UNIT_LENGTH * this.pos_y,UNIT_LENGTH * (this.pos_x+1), UNIT_LENGTH * (1+this.pos_y));
+            if (this.vertical) {
+                p5.line(UNIT_LENGTH * (this.pos_x + 1), UNIT_LENGTH * this.pos_y, UNIT_LENGTH * (this.pos_x + 1), UNIT_LENGTH * (1 + this.pos_y));
             } else {
-                p5.line(UNIT_LENGTH*this.pos_x, UNIT_LENGTH*(this.pos_y+1), UNIT_LENGTH*(this.pos_x+1), UNIT_LENGTH*(this.pos_y+1));
+                p5.line(UNIT_LENGTH * this.pos_x, UNIT_LENGTH * (this.pos_y + 1), UNIT_LENGTH * (this.pos_x + 1), UNIT_LENGTH * (this.pos_y + 1));
             }
         }
     }
 
-
-    // Will only render on client-side
 	return <Sketch setup={setup} draw={draw} mousePressed={mousePressed}/>;
 };
 
