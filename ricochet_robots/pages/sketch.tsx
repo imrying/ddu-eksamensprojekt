@@ -1,6 +1,7 @@
 import React from "react";
 import dynamic from 'next/dynamic'
 import grid from './constants'
+// import game_piece from './game_classes'
 import { Redirect } from 'react-router-dom';
 
 // Will only import `react-p5` on client-side
@@ -73,6 +74,7 @@ export default function Game(props)
             {
                 selected_piece = g;
                 new_selection = true;
+                highlight_targets = [];
                 generate_highlight_squares(p5, selected_piece);
                 break;
             }
@@ -80,6 +82,7 @@ export default function Game(props)
         if (new_selection == false)
         {
             selected_piece = null;
+            highlight_targets = [];
         }
     };
 
@@ -119,12 +122,40 @@ export default function Game(props)
 
             if (!collision) 
             {
-                highlight_targets.push(new highlight_piece(0, left-1, piece.pos_y, p5.color(100,100,0)))
+                highlight_targets.push(new highlight_piece(0, left-1, piece.pos_y, p5.color(255,255,0, 90)))
             }
             left --;
         }
-        highlight_targets[highlight_targets.length-1].color = p5.color(200,200,0); 
-        // this.hightlightPieces
+        highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0);
+        // left = piece.pos_x; 
+        // collision = false;
+        // while (left > 0 && collision == false)
+        // {
+        //     for (var w of walls) 
+        //     {
+        //         if (w.vertical == true && w.pos_x == left -1 && w.pos_y == piece.pos_y) 
+        //         {
+        //             collision = true;
+        //             break; 
+        //         }
+        //     }
+
+        //     for (var g of gamepieces) 
+        //     {
+        //         if (g.pos_x == left -1 && g.pos_y == piece.pos_y) 
+        //         {
+        //             collision = true;
+        //             break; 
+        //         }
+        //     }
+
+        //     if (!collision) 
+        //     {
+        //         highlight_targets.push(new highlight_piece(0, left-1, piece.pos_y, p5.color(255,255,0)))
+        //     }
+        //     left --;
+        // }
+        // highlight_targets[highlight_targets.length-1].color = p5.color(255,255,0); 
     }
 
     class game_piece
