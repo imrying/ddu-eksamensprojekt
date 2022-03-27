@@ -1,34 +1,73 @@
 import React from "react";
 import dynamic from 'next/dynamic';
-import grid from './constants';
-import game_piece from './game_classes';
-import { Redirect } from 'react-router-dom';
+import { useEffect } from 'react';
+import { io } from 'socket.io-client';
+
 
 // Will only import `react-p5` on client-side
 const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default), 
 {
   ssr: false,
 })
-import { useSession } from "next-auth/react"
 
+let socket; // socket for lobby
 
 let x = 50;
 let y = 50;
 var BOARD_LENGTH = 480;
 var UNIT_LENGTH = 30;
 const TOP_BAR_HEIGHT = 60;
-const DIV_DISPLX = 16;
-const DIV_DISPLY = 16;
+const DIV_DISPLX = 29;
+const DIV_DISPLY = 13;
 var canvasParentRef;
+
+
+
 
 export default function Game(props)
 {
+
     var gamepieces: Array<game_piece> = [];
     var walls: Array<wall> = [];
     var targets: Array<highlight_piece> = [];
     var highlight_targets: Array<highlight_piece> = [];
     var selected_piece: game_piece;
     var possible_moves: Array<[number, number]> = [];
+    var update_highlight_squares = false;
+
+    useEffect(() => socketInitializer(), [])
+
+    const socketInitializer = async () => {
+        await fetch('/api/lobby/lobby_manager')
+        socket = io()
+
+        socket.on('connect', () => {
+        console.log('connected')
+        })
+
+        socket.on('update-player', player_data => {
+            gamepieces[player_data[0]].pos_x = player_data[1];
+            gamepieces[player_data[0]].pos_y = player_data[2];
+            console.log(player_data);
+          })
+        
+        socket.on('update-selection', selection_data => {
+            if (selection_data != -1)
+            {
+                selected_piece = gamepieces[selection_data];
+            }   
+            highlight_targets = [];
+            possible_moves = [];
+            if (selection_data != -1)
+            {
+                update_highlight_squares = true;
+            }
+        })
+    }
+    
+    
+
+
     
 	const setup = (p5: any, canvasParentRef: any) => 
     {
@@ -38,9 +77,9 @@ export default function Game(props)
 		p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
 
         gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
-        gamepieces.push(new game_piece(0, 7, 4, p5.color(200, 0, 9)));
-        gamepieces.push(new game_piece(0, 15, 15, p5.color(0, 200, 50)));
-        gamepieces.push(new game_piece(0, 0, 15, p5.color(100, 100, 200)));
+        gamepieces.push(new game_piece(1, 7, 4, p5.color(200, 0, 9)));
+        gamepieces.push(new game_piece(2, 15, 15, p5.color(0, 200, 50)));
+        gamepieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
 
         targets.push(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
 
@@ -80,6 +119,12 @@ export default function Game(props)
             g.render(p5);
         }
         drawBoard(p5);
+
+        if (update_highlight_squares)
+        {
+            update_highlight_squares = false;
+            generate_highlight_squares(p5, selected_piece);
+        }
 	};
 
     const mousePressed = (p5: any, e: MouseEvent) => 
@@ -87,7 +132,7 @@ export default function Game(props)
         var pos_x = Math.floor((e.clientX-DIV_DISPLX)/UNIT_LENGTH);
         var pos_y = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
         var new_selection = false;
-        console.log(e.clientX, e.clientY);
+        // console.log(e.clientX, e.clientY);
         for (var pos of possible_moves)
         {
             if (pos[0] == pos_x && pos[1] == pos_y)
@@ -95,6 +140,8 @@ export default function Game(props)
                 // console.log("MOVE TO " + pos_x.toString() + " " + pos_y.toString());
                 selected_piece.pos_x = pos_x;
                 selected_piece.pos_y = pos_y;
+                
+                socket.emit('player-move', [selected_piece.id, pos_x, pos_y]);
                 if (pos_x == targets[0].pos_x && pos_y == targets[0].pos_y)
                 {
                     targets[0].pos_x = Math.floor(Math.random() * 13); 
@@ -112,6 +159,7 @@ export default function Game(props)
                 highlight_targets = [];
                 possible_moves = [];
                 generate_highlight_squares(p5, selected_piece);
+                socket.emit('select-piece', selected_piece.id);
             }
         }
         for (var g of gamepieces)
@@ -119,6 +167,7 @@ export default function Game(props)
             if (g.pos_x == pos_x && g.pos_y == pos_y && g != selected_piece)
             {
                 selected_piece = g;
+                socket.emit('select-piece', selected_piece.id);
                 new_selection = true;
                 possible_moves = [];
                 highlight_targets = [];
@@ -128,6 +177,7 @@ export default function Game(props)
         }
         if (new_selection == false)
         {
+            socket.emit('select-piece', -1);
             selected_piece = null;
             highlight_targets = [];
             possible_moves = [];
