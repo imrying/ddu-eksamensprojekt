@@ -17,7 +17,8 @@ let y = 50;
 var BOARD_LENGTH = 480;
 var UNIT_LENGTH = 30;
 const TOP_BAR_HEIGHT = 60;
-const DIV_DISPL = 16;
+const DIV_DISPLX = 16;
+const DIV_DISPLY = 16;
 var canvasParentRef;
 
 export default function Game(props)
@@ -37,9 +38,11 @@ export default function Game(props)
 		p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
 
         gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
-        gamepieces.push(new game_piece(0, 7, 4, p5.color(100, 200, 9)));
+        gamepieces.push(new game_piece(0, 7, 4, p5.color(200, 0, 9)));
+        gamepieces.push(new game_piece(0, 15, 15, p5.color(0, 200, 50)));
+        gamepieces.push(new game_piece(0, 0, 15, p5.color(100, 100, 200)));
 
-        targets.push(new highlight_piece(0, 7, 7, p5.color(50, 50, 99)));
+        targets.push(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
 
         var wall_pos_vert: Array<[number, number]> = [];
         wall_pos_vert = [[4,0], [10,0], [6,1], [8,1],[0,2], [14,2],[10,4], [6,5], [1,6],[11,6], [6,7], [6,8],[8,7], [8,8], [5,8], [1,10], [10,10],[12,11], [10,12], [3,13], [12,13],[5,14], [4,15], [9,15] ];
@@ -60,10 +63,6 @@ export default function Game(props)
 	const draw = (p5: any) =>
     {
         p5.background(255,255,255);
-        for (const g of targets)
-        {
-            g.render(p5);
-        }
         for (const g of highlight_targets)
         {
             g.render(p5);
@@ -76,14 +75,19 @@ export default function Game(props)
         {
             g.render(p5);
         }
+        for (const g of targets)
+        {
+            g.render(p5);
+        }
         drawBoard(p5);
 	};
 
     const mousePressed = (p5: any, e: MouseEvent) => 
     {
-        var pos_x = Math.floor((e.clientX-DIV_DISPL)/UNIT_LENGTH);
-        var pos_y = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPL)/UNIT_LENGTH);
+        var pos_x = Math.floor((e.clientX-DIV_DISPLX)/UNIT_LENGTH);
+        var pos_y = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
         var new_selection = false;
+        console.log(e.clientX, e.clientY);
         for (var pos of possible_moves)
         {
             if (pos[0] == pos_x && pos[1] == pos_y)
@@ -91,6 +95,23 @@ export default function Game(props)
                 // console.log("MOVE TO " + pos_x.toString() + " " + pos_y.toString());
                 selected_piece.pos_x = pos_x;
                 selected_piece.pos_y = pos_y;
+                if (pos_x == targets[0].pos_x && pos_y == targets[0].pos_y)
+                {
+                    targets[0].pos_x = Math.floor(Math.random() * 13); 
+                    targets[0].pos_y = Math.floor(Math.random() * 13); 
+                    if (targets[0].pos_x > 6)
+                    {
+                        targets[0].pos_x += 2;
+                    }
+                    if (targets[0].pos_y > 6)
+                    {
+                        targets[0].pos_y += 2;
+                    }
+                }
+                new_selection = true;
+                highlight_targets = [];
+                possible_moves = [];
+                generate_highlight_squares(p5, selected_piece);
             }
         }
         for (var g of gamepieces)
@@ -129,9 +150,6 @@ export default function Game(props)
         }
     }
 
-    function randomIntFromInterval(min, max) { // min and max included 
-        return Math.floor(Math.random() * (max - min + 1) + min)
-      }
 
     function generate_highlight_squares(p5, piece)
     {
@@ -303,6 +321,7 @@ export default function Game(props)
 
         render(p5) {
             p5.fill(this.color);
+            p5.strokeWeight(1);
             p5.circle(
                 this.pos_x * UNIT_LENGTH + UNIT_LENGTH / 2,
                 this.pos_y * UNIT_LENGTH + UNIT_LENGTH / 2,
@@ -345,9 +364,21 @@ export default function Game(props)
     }
 
 	return (
-    <div className="m-3">
-        <Sketch setup={setup} draw={draw} mousePressed={mousePressed}/>
-    </div>
+    <div className="container-fluid">
+        <div className="row">
+            <div className="col-lg-8">
+                <div className="m-3">
+                    <Sketch setup={setup} draw={draw} mousePressed={mousePressed}/>
+                </div>
+            </div>
+            <div className="col-lg-4">
+                <p>WOWOW</p>
+            </div>
+
+        </div>
+    </div> 
+
+
     );
 };
 
