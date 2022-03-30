@@ -10,30 +10,31 @@ const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default),
   ssr: false,
 })
 
-let socket; // socket for lobby
 
-let x = 50;
-let y = 50;
+//// CONSTANTS //////////////
 var BOARD_LENGTH = 480;
 var UNIT_LENGTH = 30;
 const TOP_BAR_HEIGHT = 60;
 const DIV_DISPLX = 29;
 const DIV_DISPLY = 13;
-var canvasParentRef;
 
+let socket; // socket for lobby
 
+var canvasParentRef; //global reference to canvas parent
 
 
 export default function Game(props)
 {
-
     var gamepieces: Array<game_piece> = [];
     var walls: Array<wall> = [];
-    var targets: Array<highlight_piece> = [];
+    var current_target: highlight_piece;
     var highlight_targets: Array<highlight_piece> = [];
+    
     var selected_piece: game_piece;
     var possible_moves: Array<[number, number]> = [];
     var update_highlight_squares = false;
+
+    var possible_target_pos: Array<[number, number]>;
 
     useEffect(() => socketInitializer(), [])
 
@@ -64,11 +65,7 @@ export default function Game(props)
             }
         })
     }
-    
-    
-
-
-    
+        
 	const setup = (p5: any, canvasParentRef: any) => 
     {
         BOARD_LENGTH = window.innerHeight-TOP_BAR_HEIGHT-20;
@@ -81,7 +78,27 @@ export default function Game(props)
         gamepieces.push(new game_piece(2, 15, 15, p5.color(0, 200, 50)));
         gamepieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
 
-        targets.push(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
+        current_target = new highlight_piece(0, 0, 7, p5.color(50, 50, 99));
+
+        possible_target_pos = [
+            [0,5],
+            [0,11],
+            [0,15],
+            [1,2],
+            [4,13],
+            [6,1],
+            [6,5],
+            [8,15],
+            [9,0],
+            [10,12],
+            [11,4],
+            [12,6],
+            [13,11],
+            [15,0],
+            [15,9],
+            [15,12]
+        ];
+
 
         var wall_pos_vert: Array<[number, number]> = [];
         wall_pos_vert = [[4,0], [10,0], [6,1], [8,1],[0,2], [14,2],[10,4], [6,5], [1,6],[11,6], [6,7], [6,8],[8,7], [8,8], [5,8], [1,10], [10,10],[12,11], [10,12], [3,13], [12,13],[5,14], [4,15], [9,15] ];
@@ -95,8 +112,6 @@ export default function Game(props)
         {
             walls.push(new wall(false, x[0], x[1]));
         }
-        // walls.push(new wall(true, 4, 4));
-        // walls.push(new wall(false, 4, 4));
 	};
 
 	const draw = (p5: any) =>
@@ -114,10 +129,8 @@ export default function Game(props)
         {
             g.render(p5);
         }
-        for (const g of targets)
-        {
-            g.render(p5);
-        }
+        current_target.render(p5);
+
         drawBoard(p5);
 
         if (update_highlight_squares)
@@ -142,18 +155,12 @@ export default function Game(props)
                 selected_piece.pos_y = pos_y;
                 
                 socket.emit('player-move', [selected_piece.id, pos_x, pos_y]);
-                if (pos_x == targets[0].pos_x && pos_y == targets[0].pos_y)
+                if (pos_x == current_target.pos_x && pos_y == current_target.pos_y)
                 {
-                    targets[0].pos_x = Math.floor(Math.random() * 13); 
-                    targets[0].pos_y = Math.floor(Math.random() * 13); 
-                    if (targets[0].pos_x > 6)
-                    {
-                        targets[0].pos_x += 2;
-                    }
-                    if (targets[0].pos_y > 6)
-                    {
-                        targets[0].pos_y += 2;
-                    }
+                    let random_index = Math.floor(Math.random() * possible_target_pos.length);
+
+                    current_target.pos_x = possible_target_pos[random_index][0];
+                    current_target.pos_y = possible_target_pos[random_index][1];
                 }
                 new_selection = true;
                 highlight_targets = [];
