@@ -37,20 +37,22 @@ const LobbyManager = (req, res) => {
               break;
             }
           }
-
+          // if room doesent exist create new room
           if (!room_exists) {
             rooms.push({
               room_id: data.room_id,
               usernames: [data.username]
             })
+          // else push the user to the room
           } else {
-            rooms[index].usernames.push(data.username)
+            // check if username is already in room
+            if (!rooms[index].usernames.includes(data.username)) {
+              rooms[index].usernames.push(data.username)
+            }
           }
           
-
-          
           console.log(rooms)
-          io.in(data.room_id).emit('update-room', {username: data.username});
+          io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
         })
 
         socket.on('act-move-piece', movement_data => {

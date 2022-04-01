@@ -12,9 +12,8 @@ let socket; // socket for lobby
 export default function Lobby() {
     const {data: session} = useSession()
     const router = useRouter()
-    const [users] = useState([])
+    const [users, setUsers] = useState([])
 
-    //var users = ["Benjamin", "Philip"];
 
     useEffect(() => {
         if(!router.isReady) return;
@@ -33,22 +32,32 @@ export default function Lobby() {
 
         
         socket.on("update-room", data => {
-            console.log(data.username + " joined the lobby");
-            users.push(data.username);
-            console.log(users);
+            //console.log(data.username + " joined the lobby");
+            console.log(data.room.usernames)
             
+            setUsers(data.room.usernames);            
         })
 
         console.log("ROOM: " + room_id);
         socket.emit('join-room', {room_id: room_id, username: username});
     }
 
+    // return table of users
+    // const renderUsers = () => {
+    //     return users.map((user, index) => {
+    //         <tr>
+    //             <th scope="row">{index}</th>
+    //             <td>{user}</td>
+    //         </tr>
+    //     })
+    // }
+
     return (
         <>
             <div className="px-4 py-5 my-5 text-center">
-            <h1 className="display-5 fw-bold"> {users.length} </h1>
+            <h1 className="display-5 fw-bold"> Game Lobby </h1>
             <div className="col-lg-6 mx-auto">
-                <p className="lead mb-4">Join code: CODE</p>
+                <p className="lead mb-4">Join code: {router.query.code}</p>
             </div>
             <div className="col-lg-4 mx-auto">  
                 <table className="table">
@@ -59,18 +68,16 @@ export default function Lobby() {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                        <th scope="row">1</th>
-                        <td>Mark</td>
-                        </tr>
-                        <tr>
-                        <th scope="row">2</th>
-                        <td>Jacob</td>
-                        </tr>
-                        <tr>
-                        <th scope="row">3</th>
-                        <td>Larry</td>
-                        </tr>
+                        {users.map((user, index) => {
+                            return (
+                                <tr key={index}>
+                                    <th scope="row">{index}</th>
+                                    <td>{user}</td>
+                                </tr>
+                            )
+                        })}
+
+
                     </tbody>
                     </table>  
                 </div>          
