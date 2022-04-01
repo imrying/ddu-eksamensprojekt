@@ -16,13 +16,17 @@ const LobbyManager = (req, res) => {
           socket.broadcast.to(data[0]).emit('update-room')
         })
         
-        socket.on('join-room', room_id => {
-          socket.join(room_id);
-          io.in(room_id).emit('update-room');
+        socket.on('join-room', data => {
+          socket.join(data.room_id);
+          io.in(data.room_id).emit('update-room', {username: data.username});
         })
 
-        socket.on('select-piece', msg => {
-            socket.broadcast.emit('update-selection', msg) // add to room
+        socket.on('act-move-piece', movement_data => {
+          socket.broadcast.emit('react-move-piece', movement_data);
+        })
+
+        socket.on('act-select-piece', piece_data => {
+          socket.broadcast.emit('react-select-piece', piece_data);
         })
       })
   }

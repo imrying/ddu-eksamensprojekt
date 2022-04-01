@@ -9,6 +9,7 @@ export default function joinLobby(req, res) {
         pathname:"/lobby/",
         query: {
            "code": req.body.code,
+           "username": req.body.username
          }
       }));
 

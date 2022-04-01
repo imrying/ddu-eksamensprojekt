@@ -20,7 +20,7 @@ const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default),
   ssr: false
 })
 
-let socket; // socket for lobby
+let socket: any; // socket for lobby
 
 
 export default function Game(props: any)
@@ -44,16 +44,25 @@ export default function Game(props: any)
         socket = io()
         socket.on('connect', () => {console.log('connected') })
 
-        socket.on('move-piece', player_data => //Move player, [id, pos_x, pos_y]
+        socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
         {
-            movePlayer(gamepieces[player_data[0]], player_data[1], player_data[2]);
-            generate_highlight_squares(gamepieces[player_data[0]]);
+            console.log("RECEIVED MOVE_PIECE FROM SERVER")
+            movePlayer(gamepieces[movement_data.id], movement_data.pos_x, movement_data.pos_y);
+            generate_highlight_squares(gamepieces[movement_data.id]);
         })
 
-        socket.on('select-piece', player_data => //Move player, [id, pos_x, pos_y]
+        socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
         {
-            selected_piece = player_data;
-            generate_highlight_squares(selected_piece);
+            if (piece_data.id != -1) //new piece is selected
+            {
+                selected_piece = gamepieces[piece_data.id];
+                generate_highlight_squares(selected_piece);
+            }
+            else { //deselect piece
+                selected_piece = null as any; //no piece selected
+                highlight_targets = [];
+                possible_moves = [];
+            }
         })
     }
 
@@ -115,13 +124,13 @@ export default function Game(props: any)
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
         }
+        current_target.render(p5, UNIT_LENGTH);
         for (const g of gamepieces) {
             g.render(p5, UNIT_LENGTH);
         }
         for (const g of walls) {
             g.render(p5, UNIT_LENGTH);
         }
-        current_target.render(p5, UNIT_LENGTH);
 
         drawBoard(p5);
     }
@@ -137,6 +146,7 @@ export default function Game(props: any)
             if (mouseX == move_pos[0] && mouseY == move_pos[1])
             {
                 movePlayer(selected_piece, mouseX, mouseY);
+                socket.emit('act-move-piece', {id: selected_piece.id, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
                 generate_highlight_squares(selected_piece);
                 return;
             }
@@ -148,11 +158,14 @@ export default function Game(props: any)
             if (mouseX == g.pos_x && mouseY == g.pos_y && g != selected_piece)
             {
                 selected_piece = g;
+                socket.emit('act-select-piece', {id: selected_piece.id}); //Tell server a new piece is selected
                 generate_highlight_squares(selected_piece);
+
                 return;
             }
         }
         selected_piece = null as any; //no piece selected
+        socket.emit('act-select-piece', {id: -1}); //tell server piece is deselected
         highlight_targets = [];
         possible_moves = [];
     }
@@ -162,7 +175,13 @@ export default function Game(props: any)
         g.pos_x = pos_x;
         g.pos_y = pos_y;   
         
-        
+        if (pos_x == current_target.pos_x && pos_y == current_target.pos_y)
+        {
+            let random_index = Math.floor(Math.random() * possible_target_pos.length);
+
+            current_target.pos_x = possible_target_pos[random_index][0];
+            current_target.pos_y = possible_target_pos[random_index][1];
+        }
     }
 
     const drawBoard = (p5: any) => 
@@ -241,6 +260,8 @@ export default function Game(props: any)
         highlight_targets[highlight_targets.length-1].color = HIGHLIGHT_COLOR_ONE;
         return [current_x, current_y];
     }
+
+    console.log("heyyy");
 
     //return the given sketch
     return (
