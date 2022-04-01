@@ -3,11 +3,10 @@ import dynamic from 'next/dynamic';
 import { useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-
 // Will only import `react-p5` on client-side
 const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default), 
 {
-  ssr: false,
+  ssr: false
 })
 
 
@@ -27,14 +26,14 @@ export default function Game(props)
 {
     var gamepieces: Array<game_piece> = [];
     var walls: Array<wall> = [];
-    var current_target: highlight_piece;
     var highlight_targets: Array<highlight_piece> = [];
     
     var selected_piece: game_piece;
     var possible_moves: Array<[number, number]> = [];
     var update_highlight_squares = false;
 
-    var possible_target_pos: Array<[number, number]>;
+    var current_target: highlight_piece;                //target piece
+    var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
 
     useEffect(() => socketInitializer(), [])
 
@@ -431,11 +430,8 @@ export default function Game(props)
             <div className="col-lg-4">
                 <p>WOWOW</p>
             </div>
-
         </div>
     </div> 
-
-
     );
 };
 

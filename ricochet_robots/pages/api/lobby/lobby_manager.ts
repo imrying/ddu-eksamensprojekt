@@ -1,5 +1,7 @@
 import { Server } from 'socket.io'
 
+
+
 const LobbyManager = (req, res) => {
   if (res.socket.server.io) {
     console.log('Socket is already running')
@@ -9,12 +11,18 @@ const LobbyManager = (req, res) => {
     res.socket.server.io = io
 
     io.on('connection', socket => {
-        socket.on('player-move', msg => {
-            socket.broadcast.emit('update-player', msg)
+
+        socket.on('update-room', data => {
+          socket.broadcast.to(data[0]).emit('update-room')
+        })
+        
+        socket.on('join-room', room_id => {
+          socket.join(room_id);
+          io.in(room_id).emit('update-room');
         })
 
         socket.on('select-piece', msg => {
-            socket.broadcast.emit('update-selection', msg)
+            socket.broadcast.emit('update-selection', msg) // add to room
         })
       })
   }

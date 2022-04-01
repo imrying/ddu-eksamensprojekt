@@ -39,7 +39,7 @@ export default function Home() {
                   <div className="card-body">
                     <h5 className="card-title text-center">Join Lobby</h5>
 
-                    <form action="/api/join" method="post">
+                    <form action="/api/lobby/join" method="post">
                       <div className="form-group">
                         <label htmlFor="code">Code</label>
                         <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" required />
@@ -54,13 +54,12 @@ export default function Home() {
 
               </div>
               <div className="col-lg-8">
-                  <Game/>
+                  OGABOGA
               </div>
           </div>
         </div>
 
       )}
-
     </>
 
   );
