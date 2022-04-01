@@ -49,7 +49,15 @@ export default function Home() {
                       
                       <button type="submit" className="btn btn-primary">Submit</button>
                     </form>
-                    <a href="#" className="link-primary">Create lobby instead</a>
+
+                    <form action="/api/lobby/create" method="post">
+
+                      <div className="form-group">
+                        <input type="hidden" name="username" value={session.user.name}></input>
+                      </div>
+
+                      <button type="submit" className="btn btn-secondary"> Create lobby instead </button>
+                    </form>
                   </div>
                 </div>
 

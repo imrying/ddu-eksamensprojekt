@@ -76,8 +76,6 @@ export default function Lobby() {
                                 </tr>
                             )
                         })}
-
-
                     </tbody>
                     </table>  
                 </div>          
