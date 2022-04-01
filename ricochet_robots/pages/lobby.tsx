@@ -12,8 +12,9 @@ let socket; // socket for lobby
 export default function Lobby() {
     const {data: session} = useSession()
     const router = useRouter()
+    const [users] = useState([])
 
-    var users = ["Benjamin", "Philip"];
+    //var users = ["Benjamin", "Philip"];
 
     useEffect(() => {
         if(!router.isReady) return;
@@ -41,8 +42,6 @@ export default function Lobby() {
         console.log("ROOM: " + room_id);
         socket.emit('join-room', {room_id: room_id, username: username});
     }
-
-    console.log("OOGA BOOGA");
 
     return (
         <>

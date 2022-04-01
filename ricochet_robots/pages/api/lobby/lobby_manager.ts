@@ -1,5 +1,13 @@
 import { Server } from 'socket.io'
 
+// var rooms = [];
+
+interface Room {
+  room_id: string,
+  usernames: string[]
+}
+
+var rooms = Array<Room>();
 
 
 const LobbyManager = (req, res) => {
@@ -18,6 +26,30 @@ const LobbyManager = (req, res) => {
         
         socket.on('join-room', data => {
           socket.join(data.room_id);
+
+          // check if room exists
+          var room_exists = false;
+
+          for (var i = 0; i < rooms.length; i++) {
+            if (rooms[i].room_id == data.room_id) {
+              room_exists = true;
+              var index = i;
+              break;
+            }
+          }
+
+          if (!room_exists) {
+            rooms.push({
+              room_id: data.room_id,
+              usernames: [data.username]
+            })
+          } else {
+            rooms[index].usernames.push(data.username)
+          }
+          
+
+          
+          console.log(rooms)
           io.in(data.room_id).emit('update-room', {username: data.username});
         })
 
