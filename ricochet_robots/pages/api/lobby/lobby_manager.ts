@@ -10,7 +10,10 @@ interface Room {
 var rooms = Array<Room>();
 
 
+
+
 const LobbyManager = (req, res) => {
+
   if (res.socket.server.io) {
     console.log('Socket is already running')
   } else {
@@ -18,6 +21,8 @@ const LobbyManager = (req, res) => {
     const io = new Server(res.socket.server)
     res.socket.server.io = io
 
+    
+    
     io.on('connection', socket => {
 
         socket.on('update-room', data => {
@@ -33,7 +38,7 @@ const LobbyManager = (req, res) => {
           for (var i = 0; i < rooms.length; i++) {
             if (rooms[i].room_id == data.room_id) {
               room_exists = true;
-              var index = i;
+              var index: number = i;
               break;
             }
           }
@@ -42,17 +47,20 @@ const LobbyManager = (req, res) => {
             rooms.push({
               room_id: data.room_id,
               usernames: [data.username]
-            })
+            }
+
+            )
+            io.in(data.room_id).emit('update-room', {room: rooms[rooms.length-1], username: data.username});
           // else push the user to the room
           } else {
             // check if username is already in room
             if (!rooms[index].usernames.includes(data.username)) {
               rooms[index].usernames.push(data.username)
+              io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
             }
-          }
+          }          
+          console.log(rooms[index]);
           
-          console.log(rooms)
-          io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
         })
 
         socket.on('act-move-piece', movement_data => {

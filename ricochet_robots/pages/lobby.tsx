@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import { renderToHTML } from 'next/dist/server/render';
 import React from 'react';
 
-let socket; // socket for lobby
+const socket = io(); // socket for lobby
 
 
 export default function Lobby() {
@@ -18,39 +18,36 @@ export default function Lobby() {
     useEffect(() => {
         if(!router.isReady) return;
 
-        socketInitializer(router.query.code, router.query.username);
+        const socketInitializer = async () => {
+            await fetch('/api/lobby/lobby_manager')
+            
+    
+            socket.on('connect', () => {            
+                console.log('connected')
+             })
+    
+        }
+
+        socketInitializer();
+
+        let room_id = router.query.code;
+        let username = router.query.username;
+
+        console.log("ROOM: " + room_id);
+        socket.emit('join-room', {room_id: room_id, username: username});
 
     }, [router.isReady]);
 
-    const socketInitializer = async (room_id, username) => {
-        await fetch('/api/lobby/lobby_manager')
-        socket = io()
+    useEffect(() => {
 
-        socket.on('connect', () => {            
-            console.log('connected')
-         })
-
-        
         socket.on("update-room", data => {
             //console.log(data.username + " joined the lobby");
             console.log(data.room.usernames)
             
             setUsers(data.room.usernames);            
-        })
+        });
+    }, [])
 
-        console.log("ROOM: " + room_id);
-        socket.emit('join-room', {room_id: room_id, username: username});
-    }
-
-    // return table of users
-    // const renderUsers = () => {
-    //     return users.map((user, index) => {
-    //         <tr>
-    //             <th scope="row">{index}</th>
-    //             <td>{user}</td>
-    //         </tr>
-    //     })
-    // }
 
     return (
         <>
