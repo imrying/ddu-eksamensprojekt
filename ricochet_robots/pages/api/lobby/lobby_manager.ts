@@ -54,10 +54,13 @@ const LobbyManager = (req, res) => {
           // else push the user to the room
           } else {
             // check if username is already in room
-            if (!rooms[index].usernames.includes(data.username)) {
+            if (rooms[index].usernames.includes(data.username)) {
+              io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
+            } else {
               rooms[index].usernames.push(data.username)
               io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
             }
+            
           }          
           console.log(rooms[index]);
           
