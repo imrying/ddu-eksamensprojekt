@@ -58,9 +58,14 @@ export default function Lobby() {
 
         socket.on("update-room", data => {
             //console.log(data.username + " joined the lobby");
-            console.log(data.room.usernames)
+            console.log(data.room.users);
+
+            let users = [];
+            for (let i = 0; i < data.room.users.length; i++) {
+                users.push(data.room.users[i].username);
+            }
             
-            setUsers(data.room.usernames);            
+            setUsers(users);            
         });
     }, [])
 

@@ -43,7 +43,6 @@ export default function Home() {
                       <div className="form-group">
                         <label htmlFor="code">Code</label>
                         <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" required />
-                        <input type="hidden" name="username" value={session.user.name}></input>
                         <small id="code" className="form-text text-muted">4 numbers only</small>
                       </div>
                       
@@ -53,7 +52,6 @@ export default function Home() {
                     <form action="/api/lobby/create" method="post">
 
                       <div className="form-group">
-                        <input type="hidden" name="username" value={session.user.name}></input>
                       </div>
 
                       <button type="submit" className="btn btn-secondary"> Create lobby instead </button>

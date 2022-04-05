@@ -2,9 +2,14 @@ import { Server } from 'socket.io'
 
 // var rooms = [];
 
+interface User {
+  username: string,
+  host: boolean,
+}
+
 interface Room {
   room_id: string,
-  usernames: string[]
+  users: User[]
 }
 
 var rooms = Array<Room>();
@@ -41,23 +46,31 @@ const LobbyManager = (req, res) => {
           }
           // if room doesent exist create new room
           if (!room_exists) {
+            let user_host: User = { username: data.username, host: true }
             rooms.push({
               room_id: data.room_id,
-              usernames: [data.username]
+              users: [user_host]
             }
 
             )
-            io.in(data.room_id).emit('update-room', {room: rooms[rooms.length-1], username: data.username});
+            io.in(data.room_id).emit('update-room', {room: rooms[rooms.length-1], user: user_host});
           // else push the user to the room
           } else {
             // check if username is already in room
-            if (rooms[index].usernames.includes(data.username)) {
-              io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
-            } else {
-              rooms[index].usernames.push(data.username)
-              io.in(data.room_id).emit('update-room', {room: rooms[index], username: data.username});
+
+            let usernames = [];
+            for (let i = 0; i < rooms[index].users.length; i++) {
+                usernames.push(rooms[index].users[i].username);
             }
-            
+            console.log(usernames)
+
+            if (usernames.includes(data.username)) { 
+              io.in(data.room_id).emit('update-room', {room: rooms[index]});
+            } else {
+              let user: User = { username: data.username, host: false };
+              rooms[index].users.push(user)
+              io.in(data.room_id).emit('update-room', {room: rooms[index], user: user});
+            }
           }          
           console.log(rooms[index]);
           

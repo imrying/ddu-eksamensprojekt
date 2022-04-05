@@ -13,7 +13,6 @@ export default function createLobby(req, res) {
         pathname:"/lobby/",
         query: {
            "code": code,
-           "username": req.body.username
          }
       }));
 
