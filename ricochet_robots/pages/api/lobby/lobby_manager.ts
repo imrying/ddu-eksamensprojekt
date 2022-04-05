@@ -9,9 +9,6 @@ interface Room {
 
 var rooms = Array<Room>();
 
-
-
-
 const LobbyManager = (req, res) => {
 
   if (res.socket.server.io) {

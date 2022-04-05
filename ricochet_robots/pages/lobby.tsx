@@ -5,15 +5,19 @@ import { io } from 'socket.io-client';
 import { useRouter } from 'next/router'
 import { renderToHTML } from 'next/dist/server/render';
 import React from 'react';
+import { getSession } from "next-auth/react";
+
 
 const socket = io(); // socket for lobby
 
 
 export default function Lobby() {
-    const {data: session} = useSession()
+    
     const router = useRouter()
+    const {data: session} = useSession()
     const [users, setUsers] = useState([])
 
+    
 
     useEffect(() => {
         if(!router.isReady) return;
@@ -25,16 +29,28 @@ export default function Lobby() {
             socket.on('connect', () => {            
                 console.log('connected')
              })
-    
         }
 
-        socketInitializer();
+        async function Login() {
+            const session = await getSession()
+            return session;
+            /* ... */
+          }
 
-        let room_id = router.query.code;
-        let username = router.query.username;
+        
+        var username;
 
-        console.log("ROOM: " + room_id);
-        socket.emit('join-room', {room_id: room_id, username: username});
+        Login().then(session => {
+            if(session) {
+                username = session.user.name; 
+                let room_id = router.query.code;
+
+                socketInitializer();
+        
+                console.log("ROOM: " + room_id);
+                socket.emit('join-room', {room_id: room_id, username: username});
+            }
+        })
 
     }, [router.isReady]);
 
