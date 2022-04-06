@@ -5,6 +5,7 @@ import { io } from 'socket.io-client';
 import { game_piece, wall, highlight_piece} from './classes';
 import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
+import p5Types from "p5"; //Import this for typechecking and intellisense
 
 
 
@@ -33,18 +34,26 @@ socket = io();
 export default function Game(props: any)
 {
     //game objects
-    var gamepieces: Array<game_piece> = [];
-    var walls: Array<wall> = [];
-    var highlight_targets: Array<highlight_piece> = [];
-    var current_target: highlight_piece; 
+    // var gamepieces: Array<game_piece> = [];
+    // var walls: Array<wall> = [];
+    var temp_highlight_targets: Array<highlight_piece> = [];
+    // var current_target: highlight_piece; 
 
-    var selected_piece: game_piece; //piece player tries to move
-    var possible_moves: Array<[number, number]> = []; // possible moves the player can move
+    // var selected_piece: game_piece; //piece player tries to move
+    var temp_possible_moves: Array<[number, number]> = []; // possible moves the player can move
 
-    var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
+    // var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
 
     const router = useRouter()
     var username: string;
+    const [users, setUsers] = useState([]);
+    const [current_target, setCurrentTarget] = useState({});
+    const [walls, setWalls] = useState([]);
+    const [gamepieces, setGamePieces] = useState([]);
+    const [highlight_targets, setHighlightTargets] = useState([]);
+    const [selected_piece, setSelectedPiece] = useState({});
+    const [possible_moves, setPossibleMoves] = useState({});
+    const [possible_target_pos, setPossTargetPos] = useState([]);
 
 
     //useEffect(() => socketInitializer(), [router.isReady])
@@ -81,12 +90,6 @@ export default function Game(props: any)
 
     //Handle calls from server - updating the game board and more
     useEffect(() => {
-        socket.on('disconnect', function() 
-        {
-            // ... 
-            // Find current socket i listen af 
-        });
-
         socket.on('send-client-info', data =>
         {
             for (var u of data.users) //check if your client is the host client
@@ -95,13 +98,19 @@ export default function Game(props: any)
                 {
                     if (u.host)
                     {
-                        console.log("I AM THE HOST!");
                         IS_HOST = true;
                         HAS_MOVE_PRIVELEGE = true;
                     }
                 }
             }
-            console.log(data);
+
+            let users_names: Array<string> = [];
+            for (let i = 0; i < data.users.length; i++) {
+                users_names.push(data.users[i].username);
+            }
+
+            setUsers(users_names);
+            
         })
         
         socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
@@ -114,13 +123,13 @@ export default function Game(props: any)
         {
             if (piece_data.id != -1) //new piece is selected
             {
-                selected_piece = gamepieces[piece_data.id];
+                setSelectedPiece(gamepieces[piece_data.id])
                 generate_highlight_squares(selected_piece);
             }
             else { //deselect piece
-                selected_piece = null as any; //no piece selected
-                highlight_targets = [];
-                possible_moves = [];
+                setSelectedPiece(null as any);//no piece selected
+                setHighlightTargets([]);
+                setPossibleMoves([]);
             }
         })
 
@@ -132,9 +141,11 @@ export default function Game(props: any)
 
     }, [])
     
+    
 
     const setup = (p5: any, canvasParentRef: any) => 
     {
+        console.log("RUNNING SETUP FIRST TIME");
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
         HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
 
@@ -145,20 +156,30 @@ export default function Game(props: any)
         // Create main canvas
         p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
         
-        // Construct the 4 game pieces
-        gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
-        gamepieces.push(new game_piece(1, 7, 4, p5.color(200, 0, 9)));
-        gamepieces.push(new game_piece(2, 15, 15, p5.color(0, 200, 200)));
-        gamepieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
+        // Construct the 4 game pieces locally
+        var local_game_pieces: Array<game_piece> = [];
+        
+
+        local_game_pieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
+        local_game_pieces.push(new game_piece(1, 7, 4, p5.color(200, 0, 9)));
+        local_game_pieces.push(new game_piece(2, 15, 15, p5.color(0, 200, 200)));
+        local_game_pieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
+
+        setGamePieces(local_game_pieces);
+        setPossibleMoves([]);
 
         // Set first target
-        current_target = new highlight_piece(0, 0, 7, p5.color(50, 50, 99));
+        setCurrentTarget(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
+        
 
         //Where can target spawn (x,y)
-        possible_target_pos = [
+        setPossTargetPos([
             [0,5], [0,11], [0,15], [1,2], [4,13], [6,1], [6,5], [8,15], [9,0], [10,12],
             [11,4], [12,6], [13,11], [15,0], [15,9], [15,12]
-        ];
+        ]);
+
+        //Construct all walls
+        var local_walls: Array<wall> = [];
 
         // Construct vertical walls
         var wall_pos_vert: Array<[number, number]> = [];
@@ -167,9 +188,10 @@ export default function Game(props: any)
             [11,6], [6,7],[6,8],[8,7], [8,8], [5,8], [1,10], [10,10],[12,11],
             [10,12], [3,13], [12,13],[5,14], [4,15], [9,15]
         ];
+        
         for (var x of wall_pos_vert)
         {
-            walls.push(new wall(true, x[0], x[1]));
+            local_walls.push(new wall(true, x[0], x[1]));
         }
 
         // Construct horizontal walls
@@ -181,8 +203,10 @@ export default function Game(props: any)
         ];
         for (var x of wall_pos_horz)
         {
-            walls.push(new wall(false, x[0], x[1]));
+            local_walls.push(new wall(false, x[0], x[1]));
         }
+
+        setWalls(local_walls);
     }
 
     const draw = (p5: any) =>
@@ -192,6 +216,7 @@ export default function Game(props: any)
             g.render(p5, UNIT_LENGTH);
         }
         current_target.render(p5, UNIT_LENGTH);
+        
         for (const g of gamepieces) {
             g.render(p5, UNIT_LENGTH);
         }
@@ -209,6 +234,8 @@ export default function Game(props: any)
         let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
 
         // If you try to move a game piece
+        console.log(possible_moves);
+        if (possible_moves == []) { return; }
         for (var move_pos of possible_moves)
         {
             if (mouseX == move_pos[0] && mouseY == move_pos[1])
@@ -225,17 +252,16 @@ export default function Game(props: any)
         {
             if (mouseX == g.pos_x && mouseY == g.pos_y && g != selected_piece)
             {
-                selected_piece = g;
-                socket.emit('act-select-piece', {id: selected_piece.id}); //Tell server a new piece is selected
-                generate_highlight_squares(selected_piece);
-
+                setSelectedPiece(g);
+                socket.emit('act-select-piece', {id: g.id}); //Tell server a new piece is selected
+                generate_highlight_squares(g);
                 return;
             }
         }
-        selected_piece = null as any; //no piece selected
+        setSelectedPiece(null as any);//no piece selected
         socket.emit('act-select-piece', {id: -1}); //tell server piece is deselected
-        highlight_targets = [];
-        possible_moves = [];
+        setHighlightTargets([]);
+        setPossibleMoves([]);
     }
 
     const movePlayer = (g: game_piece, pos_x: number, pos_y: number) =>
@@ -280,16 +306,23 @@ export default function Game(props: any)
 
     function generate_highlight_squares(piece: game_piece) 
     {
-        possible_moves = [];
-        highlight_targets = [];
+        setPossibleMoves([]);
+        
+        setHighlightTargets([]);
+
+        temp_highlight_targets = [];
+        temp_possible_moves = [];
+
         for (var [x,y] of [[-1,0], [1,0], [0,-1], [0,1]])
         {
             let move = get_move_pos(piece, x, y);
             if (move[0] != -1)
             {
-                possible_moves.push([move[0], move[1]]);
+                temp_possible_moves.push([move[0], move[1]]);
             }
         }
+        setPossibleMoves(temp_possible_moves);
+        setHighlightTargets(temp_highlight_targets);
     }
     
     function get_move_pos(piece: game_piece, incr_x: number, incr_y: number) 
@@ -328,14 +361,15 @@ export default function Game(props: any)
             current_x += incr_x;
             current_y += incr_y;
 
-            highlight_targets.push(new highlight_piece(0, current_x, current_y, HIGHLIGHT_COLOR_TWO))
+            // Add it to highlightsquare
+            temp_highlight_targets.push(new highlight_piece(0, current_x, current_y, HIGHLIGHT_COLOR_TWO));
         }
 
         if (piece.pos_x == current_x && piece.pos_y == current_y) //if piece did not move
         {
             return [-1,-1];
         }
-        highlight_targets[highlight_targets.length-1].color = HIGHLIGHT_COLOR_ONE;
+        temp_highlight_targets[temp_highlight_targets.length-1].color = HIGHLIGHT_COLOR_ONE;
         return [current_x, current_y];
     }
 
@@ -343,13 +377,33 @@ export default function Game(props: any)
     return (
         <div className="container-fluid">
             <div className="row">
-                <div className="col-lg-8">
+                <div className="col-lg-7">
                     <div className="m-3">
                         <Sketch setup={setup} draw={draw} mousePressed={mousePressed}/>
                     </div>
                 </div>
-                <div className="col-lg-4">
-                    <p>WOWOW</p>
+                <div className="col-lg-3">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map((user, index) => {
+                                return (
+                                    <tr key={index}>
+                                        <th scope="row">{index+1}</th>
+                                        <td>{user}</td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table> 
+                    <div className="col-lg-6 mx-auto">
+                        <button type="button" className="btn btn-primary">Bid</button>  
+                    </div> 
                 </div>
             </div>
         </div> 
