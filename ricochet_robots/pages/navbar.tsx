@@ -8,7 +8,7 @@ export default function NavBar() {
   return (
         <nav className="navbar navbar-expand-lg navbar-light bg-light">
         <div className="container-fluid">
-            <a className="navbar-brand" href="#">Ricochet Robots</a>
+            <a className="navbar-brand" href="/">Ricochet Robots</a>
             <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
             <span className="navbar-toggler-icon"></span>
             </button>
@@ -21,7 +21,7 @@ export default function NavBar() {
                 <a className="nav-link" onClick={signOut} href="#">Sign out</a>
                 <a className="nav-link"> <span>{session.user.name}</span> </a>
 
-                </>
+                </>  
                 )}
             </div>
             </div>

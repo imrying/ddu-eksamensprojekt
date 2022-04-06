@@ -9,6 +9,7 @@ interface User {
 
 interface Room {
   room_id: string,
+  //socket: number,
   users: User[]
 }
 
@@ -22,10 +23,22 @@ const LobbyManager = (req, res) => {
     console.log('Socket is initializing')
     const io = new Server(res.socket.server)
     res.socket.server.io = io
-
-    
     
     io.on('connection', socket => {
+
+        // socket.on('disconnect', function(){
+        //   // Remove user from users array and update
+        //   // var i = allClients.indexOf(socket);
+        //   // allClients.splice(i, 1);
+        //   for (let i; i < rooms.length; i++) 
+        //   {
+        //     if (rooms[i].socket == socket) 
+        //     {
+        //       // Remove object containing current socket
+        //       rooms.splice(i,1);
+        //     }
+        //   }
+        // });
 
         socket.on('update-room', data => {
           socket.broadcast.to(data[0]).emit('update-room')
@@ -49,6 +62,7 @@ const LobbyManager = (req, res) => {
             let user_host: User = { username: data.username, host: true }
             rooms.push({
               room_id: data.room_id,
+              //socket: socket,
               users: [user_host]
             }
 
@@ -76,12 +90,31 @@ const LobbyManager = (req, res) => {
           
         })
 
+        socket.on('act-start-game', data => {
+          io.in(data.room_id).emit('react-start-game', {room_id: data.room_id});
+        })
+
+        socket.on('get-client-info', data => {
+          for (let i = 0; i < rooms.length; i++) {
+            if (rooms[i].room_id == data.room_id) {
+              socket.join(data.room_id);
+              socket.emit('send-client-info', rooms[i]);
+              break;
+            }
+          }
+        })
+
+        //Game Mechanism
         socket.on('act-move-piece', movement_data => {
           socket.broadcast.emit('react-move-piece', movement_data);
         })
 
         socket.on('act-select-piece', piece_data => {
           socket.broadcast.emit('react-select-piece', piece_data);
+        })
+
+        socket.on('act-new-target ', target_data => {
+          socket.broadcast.emit('react-new-target', target_data);
         })
       })
   }

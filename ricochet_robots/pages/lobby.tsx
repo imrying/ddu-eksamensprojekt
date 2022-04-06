@@ -16,6 +16,8 @@ export default function Lobby() {
     const router = useRouter()
     const {data: session} = useSession()
     const [users, setUsers] = useState([])
+    const [room, setRoom] = useState([])
+    const [user, setUser] = useState({})
 
     
 
@@ -43,11 +45,13 @@ export default function Lobby() {
         Login().then(session => {
             if(session) {
                 username = session.user.name; 
+                setUser(username);
+ 
                 let room_id = router.query.code;
 
                 socketInitializer();
         
-                console.log("ROOM: " + room_id);
+                // console.log("ROOM: " + room_id);
                 socket.emit('join-room', {room_id: room_id, username: username});
             }
         })
@@ -58,16 +62,33 @@ export default function Lobby() {
 
         socket.on("update-room", data => {
             //console.log(data.username + " joined the lobby");
-            console.log(data.room.users);
+            // console.log(data.room.users);
 
             let users = [];
             for (let i = 0; i < data.room.users.length; i++) {
                 users.push(data.room.users[i].username);
             }
             
-            setUsers(users);            
+            setRoom(data.room);
+            setUsers(users);
+        });
+
+        socket.on("react-start-game", data => {
+            router.push('/game' + '?room_id=' + data.room_id);
         });
     }, [])
+
+
+    function startGame() {
+        for (let i = 0; i < room.users.length; i++) {
+            if (room.users[i].host) {
+                if (user == room.users[i].username) {
+                    //console.log(room.room_id)
+                    socket.emit('act-start-game', {room_id: room.room_id}); 
+                }
+            }
+        }
+    }
 
 
     return (
@@ -96,7 +117,10 @@ export default function Lobby() {
                         })}
                     </tbody>
                     </table>  
-                </div>          
+                </div>
+                <div className="col-lg-6 mx-auto">
+                    <button type="button" className="btn btn-primary" onClick={startGame}>Start Game</button>  
+                </div>        
             </div>
         </>
     );
