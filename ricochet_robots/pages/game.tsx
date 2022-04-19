@@ -119,8 +119,11 @@ export default function Game(props: any)
         
         socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
         {
-            movePlayer(gamepieces[movement_data.id], movement_data.pos_x, movement_data.pos_y);
-            generate_highlight_squares(gamepieces[movement_data.id]);
+            if (gamepieces.length != undefined)
+            {
+                movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
+                generate_highlight_squares(movement_data.id);
+            }
         })
 
         socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
