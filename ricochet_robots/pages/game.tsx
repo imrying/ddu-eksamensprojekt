@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 import { game_piece, wall, highlight_piece} from './classes';
 import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
-
+import p5Types from "p5"; //Import this for typechecking and intellisense
 
 
 
@@ -36,7 +36,7 @@ export default function Game(props: any)
     var gamepieces: Array<game_piece> = [];
     var walls: Array<wall> = [];
     var highlight_targets: Array<highlight_piece> = [];
-    var current_target: highlight_piece; 
+    // var current_target: highlight_piece; 
 
     var selected_piece: game_piece; //piece player tries to move
     var possible_moves: Array<[number, number]> = []; // possible moves the player can move
@@ -45,7 +45,9 @@ export default function Game(props: any)
 
     const router = useRouter()
     var username: string;
-
+    const [users, setUsers] = useState([]);
+    const [current_target, setCurrentTarget] = useState({})
+    
 
     //useEffect(() => socketInitializer(), [router.isReady])
     
@@ -81,11 +83,7 @@ export default function Game(props: any)
 
     //Handle calls from server - updating the game board and more
     useEffect(() => {
-        socket.on('disconnect', function() 
-        {
-            // ... 
-            // Find current socket i listen af 
-        });
+
 
         socket.on('send-client-info', data =>
         {
@@ -101,7 +99,13 @@ export default function Game(props: any)
                     }
                 }
             }
-            console.log(data);
+
+            let users_names: Array<string> = [];
+            for (let i = 0; i < data.users.length; i++) {
+                users_names.push(data.users[i].username);
+            }
+
+            setUsers(users_names);
         })
         
         socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
@@ -114,6 +118,8 @@ export default function Game(props: any)
         {
             if (piece_data.id != -1) //new piece is selected
             {
+                console.log(piece_data);
+                console.log(gamepieces);
                 selected_piece = gamepieces[piece_data.id];
                 generate_highlight_squares(selected_piece);
             }
@@ -152,7 +158,8 @@ export default function Game(props: any)
         gamepieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
 
         // Set first target
-        current_target = new highlight_piece(0, 0, 7, p5.color(50, 50, 99));
+        //current_target = new highlight_piece(0, 0, 7, p5.color(50, 50, 99));
+        setCurrentTarget(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
 
         //Where can target spawn (x,y)
         possible_target_pos = [
