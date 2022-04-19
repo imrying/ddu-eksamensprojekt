@@ -49,9 +49,13 @@ export default function Game(props: any)
     const [users, setUsers] = useState([]);
     const [current_target, setCurrentTarget] = useState({});
     const [walls, setWalls] = useState([]);
-    const [gamepieces, setGamePieces] = useState([]);
+
+
+    const [gamepieces, setGamePieces] = useState({});
+    var local_game_pieces: Array<game_piece> = [];
+
     const [highlight_targets, setHighlightTargets] = useState([]);
-    const [selected_piece, setSelectedPiece] = useState({});
+    const [selected_piece, setSelectedPiece] = useState();
     const [possible_moves, setPossibleMoves] = useState({});
     const [possible_target_pos, setPossTargetPos] = useState([]);
 
@@ -119,27 +123,31 @@ export default function Game(props: any)
             generate_highlight_squares(gamepieces[movement_data.id]);
         })
 
-        socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
-        {
-            if (piece_data.id != -1) //new piece is selected
-            {
-                setSelectedPiece(gamepieces[piece_data.id])
-                generate_highlight_squares(selected_piece);
-            }
-            else { //deselect piece
-                setSelectedPiece(null as any);//no piece selected
-                setHighlightTargets([]);
-                setPossibleMoves([]);
-            }
-        })
-
         socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
         {
             current_target.pos_x = possible_target_pos[target_data.id][0];
             current_target.pos_y = possible_target_pos[target_data.id][1];
         })
 
-    }, [])
+        socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
+        {
+            if (gamepieces.length != undefined)
+            {
+                if (piece_data.id != -1) //new piece is selected
+                {
+                    setSelectedPiece(piece_data.id);
+                    generate_highlight_squares(piece_data.id);
+                }
+                else { //deselect piece
+                    setSelectedPiece(null as any);//no piece selected
+                    setHighlightTargets([]);
+                    setPossibleMoves([]);
+                }
+            }
+
+        })
+
+    }, [gamepieces])
     
     
 
@@ -155,22 +163,22 @@ export default function Game(props: any)
         
         // Create main canvas
         p5.createCanvas(BOARD_LENGTH, BOARD_LENGTH).parent(canvasParentRef);
-        
-        // Construct the 4 game pieces locally
-        var local_game_pieces: Array<game_piece> = [];
-        
+ 
 
+        setPossibleMoves([]);
+
+        // Set first target
+        setCurrentTarget(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
+        
+        
+        var local_game_pieces: Array<game_piece> = [];
+            
         local_game_pieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
         local_game_pieces.push(new game_piece(1, 7, 4, p5.color(200, 0, 9)));
         local_game_pieces.push(new game_piece(2, 15, 15, p5.color(0, 200, 200)));
         local_game_pieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
 
         setGamePieces(local_game_pieces);
-        setPossibleMoves([]);
-
-        // Set first target
-        setCurrentTarget(new highlight_piece(0, 0, 7, p5.color(50, 50, 99)));
-        
 
         //Where can target spawn (x,y)
         setPossTargetPos([
@@ -207,10 +215,15 @@ export default function Game(props: any)
         }
 
         setWalls(local_walls);
+
+
+
     }
 
     const draw = (p5: any) =>
     {
+
+        console.log(gamepieces.length);
         p5.background(255, 255, 255);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
@@ -241,7 +254,7 @@ export default function Game(props: any)
             if (mouseX == move_pos[0] && mouseY == move_pos[1])
             {
                 movePlayer(selected_piece, mouseX, mouseY);
-                socket.emit('act-move-piece', {id: selected_piece.id, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
+                socket.emit('act-move-piece', {id: selected_piece, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
                 generate_highlight_squares(selected_piece);
                 return;
             }
@@ -250,11 +263,11 @@ export default function Game(props: any)
         // If you clicked on a new game piece
         for (var g of gamepieces)
         {
-            if (mouseX == g.pos_x && mouseY == g.pos_y && g != selected_piece)
+            if (mouseX == g.pos_x && mouseY == g.pos_y && g.id != selected_piece)
             {
-                setSelectedPiece(g);
+                setSelectedPiece(g.id);
                 socket.emit('act-select-piece', {id: g.id}); //Tell server a new piece is selected
-                generate_highlight_squares(g);
+                generate_highlight_squares(g.id);
                 return;
             }
         }
@@ -264,8 +277,9 @@ export default function Game(props: any)
         setPossibleMoves([]);
     }
 
-    const movePlayer = (g: game_piece, pos_x: number, pos_y: number) =>
+    const movePlayer = (idx: number, pos_x: number, pos_y: number) =>
     {
+        var g: game_piece = gamepieces[idx];
         g.pos_x = pos_x;
         g.pos_y = pos_y;   
         
@@ -304,8 +318,10 @@ export default function Game(props: any)
         }
     }
 
-    function generate_highlight_squares(piece: game_piece) 
+    function generate_highlight_squares(idx: number) 
     {
+        console.log(gamepieces.length);
+        var piece: game_piece = gamepieces[idx];
         setPossibleMoves([]);
         
         setHighlightTargets([]);
@@ -315,7 +331,7 @@ export default function Game(props: any)
 
         for (var [x,y] of [[-1,0], [1,0], [0,-1], [0,1]])
         {
-            let move = get_move_pos(piece, x, y);
+            let move = get_move_pos(piece.id, x, y);
             if (move[0] != -1)
             {
                 temp_possible_moves.push([move[0], move[1]]);
@@ -325,8 +341,9 @@ export default function Game(props: any)
         setHighlightTargets(temp_highlight_targets);
     }
     
-    function get_move_pos(piece: game_piece, incr_x: number, incr_y: number) 
+    function get_move_pos(idx: number, incr_x: number, incr_y: number) 
     {
+        var piece: game_piece = gamepieces[idx];
         var current_x = piece.pos_x;
         var current_y = piece.pos_y;
 
