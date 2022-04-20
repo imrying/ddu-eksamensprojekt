@@ -2,11 +2,10 @@ import React from "react";
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { game_piece, wall, highlight_piece} from './classes';
+import { game_piece, wall, highlight_piece, user} from './classes';
 import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
 import p5Types from "p5"; //Import this for typechecking and intellisense
-
 
 
 
@@ -18,7 +17,6 @@ var DIV_DISPLX = 29;
 var DIV_DISPLY = 13;
 var HIGHLIGHT_COLOR_ONE: any;
 var HIGHLIGHT_COLOR_TWO: any;
-var IS_HOST = false;
 var HAS_MOVE_PRIVELEGE = false;
 
 // Will only import `react-p5` on client-side
@@ -45,8 +43,7 @@ export default function Game(props: any)
     // var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
 
     const router = useRouter()
-    var username: string;
-    const [users, setUsers] = useState([]);
+    // const [users, setUsers] = useState([]);
     const [current_target, setCurrentTarget] = useState({});
     const [walls, setWalls] = useState([]);
 
@@ -58,6 +55,12 @@ export default function Game(props: any)
     const [selected_piece, setSelectedPiece] = useState();
     const [possible_moves, setPossibleMoves] = useState({});
     const [possible_target_pos, setPossTargetPos] = useState([]);
+    const [username, setUsername] = useState("");
+    const [IS_HOST, setHost] = useState(false);
+
+    const [bid, setBid] = useState("");
+
+    const [room, setRoom] = useState([]);
 
 
     //useEffect(() => socketInitializer(), [router.isReady])
@@ -68,9 +71,7 @@ export default function Game(props: any)
 
         Login().then(session => {
             if(session) {
-                username = session.user.name; 
-                console.log(username);
-
+                setUsername(session.user.name); 
                 socketInitializer()
 
                 let room_id = router.query.room_id;
@@ -96,52 +97,88 @@ export default function Game(props: any)
     useEffect(() => {
         socket.on('send-client-info', data =>
         {
-            for (var u of data.users) //check if your client is the host client
+            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && username != undefined)             
             {
-                if (u.username == username)
+                        
+                console.log("SEND CLIENT INFO DATA")
+
+                
+                for (var u of data.users) //check if your client is the host client
                 {
-                    if (u.host)
+                    if (u.username == username)
                     {
-                        IS_HOST = true;
-                        HAS_MOVE_PRIVELEGE = true;
+                        if (u.host)
+                        {
+                            console.log("SETTING HOST");
+                            setHost(true);
+                            // IS_HOST = true;
+                        }
                     }
                 }
+                var temp_room: Array<user> = [];
+                for (var u of data.users)
+                {
+                    temp_room.push(new user(u.username, u.host, u.score));
+                }
+                
+                setRoom(temp_room);
             }
-
-            let users_names: Array<string> = [];
-            for (let i = 0; i < data.users.length; i++) {
-                users_names.push(data.users[i].username);
-            }
-
-            setUsers(users_names);
-            
         })
         
         socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
         {
-            if (gamepieces.length != undefined)
+            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)
             {
                 movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
                 generate_highlight_squares(movement_data.id);
             }
         })
-
         socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
         {
-            console.log(current_target);
-            console.log("ON REACT NEW TARGET");
-            console.log(target_data);
-            if (Object.keys(current_target).length != 0)
-            {
-                console.log("INSIDE IF STATEMENT");
+            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
                 setCurrentTarget(new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color));
+            }
+        })
+
+        socket.on('react-new-bid', data => //Give move privelege, [bid, username]
+        {
+            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
+                HAS_MOVE_PRIVELEGE = false;
+
+                // for every user check if data.user == username 
+                var temp_room = room;
+                for (var u of temp_room)
+                {
+                    if (u.username == data.username)
+                    {
+                        u.hasMovePrivilege = true;
+                    }
+                    else {
+                        u.hasMovePrivilege = false;
+                    }
+                }
+                setRoom(temp_room);
+            }
+        })
+
+        socket.on('react-give-point', data => //Give point, [username, point])
+        {
+            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
+                var temp_room = room;
+                for (var u of temp_room)
+                {
+                    if (u.username == data.username)
+                    {
+                        u.score += 1;
+                    }
+                }
+                setRoom(temp_room);
             }
         })
 
         socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
         {
-            if (gamepieces.length != undefined)
-            {
+            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
                 if (piece_data.id != -1) //new piece is selected
                 {
                     setSelectedPiece(piece_data.id);
@@ -155,7 +192,9 @@ export default function Game(props: any)
             }
         })
 
-    }, [gamepieces, current_target])
+        
+
+    }, [gamepieces, current_target, room, username])
     
     
 
@@ -229,7 +268,6 @@ export default function Game(props: any)
 
     const draw = (p5: any) =>
     {
-
         p5.background(255, 255, 255);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
@@ -259,6 +297,7 @@ export default function Game(props: any)
             if (mouseX == move_pos[0] && mouseY == move_pos[1])
             {
                 movePlayer(selected_piece, mouseX, mouseY);
+                console.log("TELLING SERVER I AM MOVING A PIECE");
                 socket.emit('act-move-piece', {id: selected_piece, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
                 generate_highlight_squares(selected_piece);
                 return;
@@ -287,15 +326,26 @@ export default function Game(props: any)
         var g: game_piece = gamepieces[idx];
         g.pos_x = pos_x;
         g.pos_y = pos_y;   
-        
-        // If your host, and a target is "hit" select a new target.
 
+        console.log("MOVING PLAYER");
+        // If your host, and a target is "hit" select a new target.
         if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y)
         {
+            console.log("HOST IS MOVING PLAYER");
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
             setCurrentTarget(new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color));
-            console.log("sent server message that new target is selected")
-            socket.emit('act-new-target', {id: random_index}); //Tell server player has moved            
+            socket.emit('act-new-target', {id: random_index});
+            var temp_room = room;
+            console.log(room);
+            for (var u of temp_room)
+            {
+                if (u.hasMovePrivilege)
+                {
+                    u.score += 1;
+                    socket.emit('act-give-point', {username: u.username});
+                }
+            }
+            setRoom(temp_room);      
         }
     }
 
@@ -394,6 +444,28 @@ export default function Game(props: any)
         return [current_x, current_y];
     }
 
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        HAS_MOVE_PRIVELEGE = true;
+
+        // for every user check if data.user == username 
+        var temp_room = room;
+        for (var u of temp_room)
+        {
+            if (u.username == username)
+            {
+                u.hasMovePrivilege = true;
+            }
+            else {
+                u.hasMovePrivilege = false;
+            }
+        }
+        setRoom(temp_room);
+        socket.emit('act-new-bid', {bid: bid, username: username}); //Tell server player has moved           
+        
+        // console.log(bid)
+      }
+
     //return the given sketch
     return (
         <div className="container-fluid">
@@ -404,26 +476,46 @@ export default function Game(props: any)
                     </div>
                 </div>
                 <div className="col-lg-3">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map((user, index) => {
-                                return (
-                                    <tr key={index}>
-                                        <th scope="row">{index+1}</th>
-                                        <td>{user}</td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table> 
+                    
+                    {room.length != 0 ? (
+                            <>
+                            <table className="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Name</th>
+                                    <th scope="col">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {room.map((user, index) => {
+                                    return (
+                                        <tr key={index}>
+                                            <th scope="row">{index+1}</th>
+                                            <td>{user.username}</td>
+                                            <td>{user.score}</td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table> 
+
+                        </>
+                    
+                    ) : (
+                        <>
+                        </>
+
+                    )}
+                   
                     <div className="col-lg-6 mx-auto">
-                        <button type="button" className="btn btn-primary">Bid</button>  
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Bid</label>
+                                <input type="number" className="form-control" value={bid} onChange={(e) => setBid(e.target.value)} id="bid" />
+                            </div>
+                            <button type="submit" className="btn btn-primary m-3">Place bid</button>
+                        </form>
                     </div> 
                 </div>
             </div>

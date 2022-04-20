@@ -5,6 +5,7 @@ import { Server } from 'socket.io'
 interface User {
   username: string,
   host: boolean,
+  score: number,
 }
 
 interface Room {
@@ -12,6 +13,7 @@ interface Room {
   //socket: number,
   users: User[]
 }
+
 
 var rooms = Array<Room>();
 
@@ -59,7 +61,7 @@ const LobbyManager = (req, res) => {
           }
           // if room doesent exist create new room
           if (!room_exists) {
-            let user_host: User = { username: data.username, host: true }
+            let user_host: User = { username: data.username, host: true, score: 0 }
             rooms.push({
               room_id: data.room_id,
               //socket: socket,
@@ -81,7 +83,7 @@ const LobbyManager = (req, res) => {
             if (usernames.includes(data.username)) { 
               io.in(data.room_id).emit('update-room', {room: rooms[index]});
             } else {
-              let user: User = { username: data.username, host: false };
+              let user: User = { username: data.username, host: false, score: 0 };
               rooms[index].users.push(user)
               io.in(data.room_id).emit('update-room', {room: rooms[index], user: user});
             }
@@ -99,6 +101,7 @@ const LobbyManager = (req, res) => {
             if (rooms[i].room_id == data.room_id) {
               socket.join(data.room_id);
               socket.emit('send-client-info', rooms[i]);
+
               break;
             }
           }
@@ -116,6 +119,15 @@ const LobbyManager = (req, res) => {
         socket.on('act-new-target', target_data => {
           socket.broadcast.emit('react-new-target', target_data);
         })
+
+        socket.on('act-new-bid', data => {
+          socket.broadcast.emit('react-new-bid', data);
+        })
+
+        socket.on('act-give-point', data => {
+          socket.broadcast.emit('react-give-point', data);
+        })
+
       })
   }
   res.end()

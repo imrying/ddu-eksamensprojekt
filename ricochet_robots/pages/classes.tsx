@@ -64,3 +64,17 @@ export class wall {
         }
     }
 }
+
+export class user {
+    username : string;
+    ishost : boolean;
+    hasMovePrivilege : boolean;
+    score : number;
+
+    constructor(username : string, ishost : boolean, score : number) {
+        this.username = username;
+        this.ishost = ishost;
+        this.score = score;
+        this.hasMovePrivilege = false;
+    }
+}
