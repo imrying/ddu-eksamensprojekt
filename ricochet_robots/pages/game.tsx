@@ -128,8 +128,14 @@ export default function Game(props: any)
 
         socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
         {
-            current_target.pos_x = possible_target_pos[target_data.id][0];
-            current_target.pos_y = possible_target_pos[target_data.id][1];
+            console.log(current_target);
+            console.log("ON REACT NEW TARGET");
+            console.log(target_data);
+            if (Object.keys(current_target).length != 0)
+            {
+                console.log("INSIDE IF STATEMENT");
+                setCurrentTarget(new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color));
+            }
         })
 
         socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
@@ -147,16 +153,14 @@ export default function Game(props: any)
                     setPossibleMoves([]);
                 }
             }
-
         })
 
-    }, [gamepieces])
+    }, [gamepieces, current_target])
     
     
 
     const setup = (p5: any, canvasParentRef: any) => 
     {
-        console.log("RUNNING SETUP FIRST TIME");
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
         HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
 
@@ -226,7 +230,6 @@ export default function Game(props: any)
     const draw = (p5: any) =>
     {
 
-        console.log(gamepieces.length);
         p5.background(255, 255, 255);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
@@ -250,7 +253,6 @@ export default function Game(props: any)
         let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
 
         // If you try to move a game piece
-        console.log(possible_moves);
         if (possible_moves == []) { return; }
         for (var move_pos of possible_moves)
         {
@@ -287,12 +289,12 @@ export default function Game(props: any)
         g.pos_y = pos_y;   
         
         // If your host, and a target is "hit" select a new target.
+
         if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y)
         {
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
-
-            current_target.pos_x = possible_target_pos[random_index][0];
-            current_target.pos_y = possible_target_pos[random_index][1];
+            setCurrentTarget(new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color));
+            console.log("sent server message that new target is selected")
             socket.emit('act-new-target', {id: random_index}); //Tell server player has moved            
         }
     }
@@ -323,7 +325,6 @@ export default function Game(props: any)
 
     function generate_highlight_squares(idx: number) 
     {
-        console.log(gamepieces.length);
         var piece: game_piece = gamepieces[idx];
         setPossibleMoves([]);
         

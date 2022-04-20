@@ -113,7 +113,7 @@ const LobbyManager = (req, res) => {
           socket.broadcast.emit('react-select-piece', piece_data);
         })
 
-        socket.on('act-new-target ', target_data => {
+        socket.on('act-new-target', target_data => {
           socket.broadcast.emit('react-new-target', target_data);
         })
       })
