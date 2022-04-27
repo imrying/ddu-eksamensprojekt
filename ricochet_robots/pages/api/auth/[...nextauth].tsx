@@ -3,9 +3,10 @@ import GithubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google";
 
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import * as Prisma from "@prisma/client"
 
-const prisma = new Prisma.PrismaClient();
+//const prisma = new Prisma.PrismaClient();
+
+import prisma from './lib/prisma'
 
 export default NextAuth({
   // Configure one or more authentication providers

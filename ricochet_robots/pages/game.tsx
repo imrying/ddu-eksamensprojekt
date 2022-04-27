@@ -94,15 +94,36 @@ export default function Game(props: any)
       }
 
     //Handle calls from server - updating the game board and more
+    useEffect(() => {    
+        
+        socket.on('react-give-point', data => //Give point, [username, point])
+        {
+            if (Object.keys(room).length != 0)
+            {
+           
+                console.log("REACT GIVE POINT");
+                var temp_room = room;
+                for (var u of temp_room)
+                {
+                    if (u.username == data.username)
+                    {
+                        u.score = data.score;
+                    }
+                }
+                setRoom(temp_room);
+            }
+        })
+
+    }, [room])
+    
+
     useEffect(() => {
         socket.on('send-client-info', data =>
         {
-            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && username != undefined)             
+            if (username != "")
             {
-                        
-                console.log("SEND CLIENT INFO DATA")
-
-                
+                console.log(username);
+                console.log("send-client-info event");
                 for (var u of data.users) //check if your client is the host client
                 {
                     if (u.username == username)
@@ -124,61 +145,50 @@ export default function Game(props: any)
                 setRoom(temp_room);
             }
         })
-        
-        socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
-        {
-            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)
-            {
-                movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
-                generate_highlight_squares(movement_data.id);
-            }
-        })
-        socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
-        {
-            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
-                setCurrentTarget(new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color));
-            }
-        })
+    }, [username])
 
+    useEffect(() => {
         socket.on('react-new-bid', data => //Give move privelege, [bid, username]
         {
-            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
-                HAS_MOVE_PRIVELEGE = false;
+            console.log("REACT NEW BID");
+            HAS_MOVE_PRIVELEGE = false;
 
-                // for every user check if data.user == username 
-                var temp_room = room;
-                for (var u of temp_room)
+            var temp_room = room;
+            for (var u of temp_room)
+            {
+                if (u.username == data.username)
                 {
-                    if (u.username == data.username)
-                    {
-                        u.hasMovePrivilege = true;
-                    }
-                    else {
-                        u.hasMovePrivilege = false;
-                    }
+                    u.hasMovePrivilege = true;
                 }
-                setRoom(temp_room);
+                else {
+                    u.hasMovePrivilege = false;
+                }
             }
+            setRoom(temp_room);
+            
         })
+    }, [room])
 
-        socket.on('react-give-point', data => //Give point, [username, point])
+    useEffect(() => {
+        socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
         {
-            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
-                var temp_room = room;
-                for (var u of temp_room)
+            if (Object.keys(gamepieces).length != 0 && (Object.keys(room).length != 0))
+            {
+
+                if (!(gamepieces[movement_data.id].x == movement_data.pos_x && gamepieces[movement_data.id].y == movement_data.pos_y))
                 {
-                    if (u.username == data.username)
-                    {
-                        u.score += 1;
-                    }
+                    movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
+                    generate_highlight_squares(movement_data.id);
                 }
-                setRoom(temp_room);
             }
         })
 
+    }, [gamepieces, room])
+
+    useEffect(() => {
         socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
         {
-            if (Object.keys(current_target).length != 0 && Object.keys(gamepieces).length != 0 && Object.keys(room).length != 0 && username != undefined)            {
+            if (Object.keys(gamepieces).length != 0) {
                 if (piece_data.id != -1) //new piece is selected
                 {
                     setSelectedPiece(piece_data.id);
@@ -191,11 +201,22 @@ export default function Game(props: any)
                 }
             }
         })
+    }, [gamepieces])
 
-        
 
-    }, [gamepieces, current_target, room, username])
-    
+    // useEffect(() => {
+    //     socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
+    //     {
+    //         if (Object.keys(current_target).length != 0)    
+    //         {
+    //             setCurrentTarget(new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color));
+    //         }
+    //     })
+    // }, [current_target])
+
+  
+
+
     
 
     const setup = (p5: any, canvasParentRef: any) => 
@@ -327,22 +348,20 @@ export default function Game(props: any)
         g.pos_x = pos_x;
         g.pos_y = pos_y;   
 
-        console.log("MOVING PLAYER");
         // If your host, and a target is "hit" select a new target.
         if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y)
         {
-            console.log("HOST IS MOVING PLAYER");
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
             setCurrentTarget(new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color));
             socket.emit('act-new-target', {id: random_index});
             var temp_room = room;
-            console.log(room);
             for (var u of temp_room)
             {
                 if (u.hasMovePrivilege)
                 {
                     u.score += 1;
-                    socket.emit('act-give-point', {username: u.username});
+                    socket.emit('act-give-point', {username: u.username, score: u.score});
+                    console.log("TELLING SERVER SOMEONE HAS TO GET A POINT");
                 }
             }
             setRoom(temp_room);      
@@ -446,9 +465,13 @@ export default function Game(props: any)
 
     const handleSubmit = (event) => {
         event.preventDefault();
+
+        if (event.target[0].value == "") {
+            return;
+        }
+
         HAS_MOVE_PRIVELEGE = true;
 
-        // for every user check if data.user == username 
         var temp_room = room;
         for (var u of temp_room)
         {
@@ -462,8 +485,6 @@ export default function Game(props: any)
         }
         setRoom(temp_room);
         socket.emit('act-new-bid', {bid: bid, username: username}); //Tell server player has moved           
-        
-        // console.log(bid)
       }
 
     //return the given sketch
