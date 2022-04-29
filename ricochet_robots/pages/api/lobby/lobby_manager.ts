@@ -93,14 +93,15 @@ const LobbyManager = (req, res) => {
         })
 
         socket.on('act-start-game', data => {
+          console.log("HELLOTASNOIN#############################");
           io.in(data.room_id).emit('react-start-game', {room_id: data.room_id});
         })
 
-        socket.on('get-client-info', data => {
+        socket.on('act-client-info', data => {
           for (let i = 0; i < rooms.length; i++) {
             if (rooms[i].room_id == data.room_id) {
               socket.join(data.room_id);
-              socket.emit('send-client-info', rooms[i]);
+              socket.emit('react-client-info', rooms[i]);
 
               break;
             }
@@ -126,6 +127,10 @@ const LobbyManager = (req, res) => {
 
         socket.on('act-give-point', data => {
           socket.broadcast.emit('react-give-point', data);
+        })
+
+        socket.on('act-test', data => {
+          socket.broadcast.emit('react-test', data);
         })
 
       })

@@ -204,15 +204,15 @@ export default function Game(props: any)
     }, [gamepieces])
 
 
-    // useEffect(() => {
-    //     socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
-    //     {
-    //         if (Object.keys(current_target).length != 0)    
-    //         {
-    //             setCurrentTarget(new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color));
-    //         }
-    //     })
-    // }, [current_target])
+    useEffect(() => {
+        socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
+        {
+            if (Object.keys(current_target).length != 0)    
+            {
+                setCurrentTarget(new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color));
+            }
+        })
+    }, [current_target])
 
   
 
@@ -282,8 +282,6 @@ export default function Game(props: any)
         }
 
         setWalls(local_walls);
-
-
 
     }
 
@@ -529,7 +527,7 @@ export default function Game(props: any)
 
                     )}
                    
-                    <div className="col-lg-6 mx-auto">
+                    {/* <div className="col-lg-6 mx-auto">
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Bid</label>
@@ -537,7 +535,7 @@ export default function Game(props: any)
                             </div>
                             <button type="submit" className="btn btn-primary m-3">Place bid</button>
                         </form>
-                    </div> 
+                    </div>  */}
                 </div>
             </div>
         </div> 

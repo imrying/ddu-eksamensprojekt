@@ -19,6 +19,8 @@ export default function Lobby() {
     const [room, setRoom] = useState([])
     const [user, setUser] = useState({})
 
+
+
     
 
     useEffect(() => {
@@ -74,7 +76,7 @@ export default function Lobby() {
         });
 
         socket.on("react-start-game", data => {
-            router.push('/game' + '?room_id=' + data.room_id);
+            router.push('/game2' + '?room_id=' + data.room_id);
         });
     }, [])
 
