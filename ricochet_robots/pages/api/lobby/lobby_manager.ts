@@ -137,6 +137,10 @@ const LobbyManager = (req, res) => {
           socket.broadcast.emit('react-give-move-privilege', data);
         })
 
+        socket.on('act-gamestate', data => {
+          socket.broadcast.emit('react-gamestate', data);
+        })
+
 
       })
   }

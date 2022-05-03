@@ -18,13 +18,16 @@ var DIV_DISPLY = 13;
 var HIGHLIGHT_COLOR_ONE: any;
 var HIGHLIGHT_COLOR_TWO: any;
 var HAS_MOVE_PRIVELEGE = false;
+var SCREEN_WIDTH = 0;
 var IS_HOST = false;
 var current_bid = Infinity;
+var current_bidder = "";
 
 // Time management
 var TIME;
 var TIME_DEADLINE = 0;
 var COUNTDOWN = 0;
+var SHOWING_SOL = false;
 
 
 
@@ -114,12 +117,24 @@ export default function Game(props: any)
 
     const showTable = (p5: any) =>
     {
-        // draw table
+        let SHIFT_X = BOARD_LENGTH+50;
+        let SHIFT_Y = 100;
 
+        p5.strokeWeight(1);
+
+        p5.textStyle(p5.BOLD);
+        p5.textSize(20);
+        p5.text("Username", SHIFT_X, SHIFT_Y);
+        p5.text("score", (SHIFT_X)+180, SHIFT_Y);
+        p5.textStyle(p5.NORMAL);
+        
         for (let i=0; i<table.length; i++) {
-            p5.text(table[i][0], BOARD_LENGTH*1.5, (i+1)*50);
-            p5.text(table[i][1], (BOARD_LENGTH*1.5)+100, (i+1)*50);
+            p5.text(table[i][0], SHIFT_X, SHIFT_Y+(i+1)*25);
+            p5.text(table[i][1], SHIFT_X+200, SHIFT_Y+(i+1)*25);
+            p5.line(SHIFT_X-20, SHIFT_Y+5+(i)*25, SHIFT_X+250, SHIFT_Y+5+(i)*25);
         }
+        p5.line(SHIFT_X-20, SHIFT_Y+5+((table.length))*25, SHIFT_X+250, SHIFT_Y+5+(table.length)*25);
+        p5.line(SHIFT_X+150, SHIFT_Y+5, SHIFT_X+150, SHIFT_Y+5+(table.length)*25);
     }
 
     socket.on('react-client-info', data =>
@@ -176,6 +191,7 @@ export default function Game(props: any)
         {
             TIME_DEADLINE = TIME + 20000;
         }
+        current_bidder = data.username;
     })
 
     socket.on('react-give-point', data => //Give point, [username, point])
@@ -203,6 +219,11 @@ export default function Game(props: any)
         }
         
     })
+
+    socket.on('react-gamestate', data =>
+    {
+        SHOWING_SOL = data;
+    })
     
 
     const setup = (p5: any, canvasParentRef: any) => 
@@ -215,9 +236,10 @@ export default function Game(props: any)
         // Calculate window size
         BOARD_LENGTH = window.innerHeight - TOP_BAR_HEIGHT - DIV_DISPLY - 20;
         UNIT_LENGTH = BOARD_LENGTH/16;
+        SCREEN_WIDTH = window.innerWidth - 100;
         
         // Create main canvas
-        p5.createCanvas(BOARD_LENGTH*2, BOARD_LENGTH).parent(canvasParentRef);
+        p5.createCanvas(SCREEN_WIDTH, BOARD_LENGTH).parent(canvasParentRef);
  
 
         possible_moves = [];
@@ -263,16 +285,29 @@ export default function Game(props: any)
         }
         let button;
         button = p5.createElement('button', 'Submit Bid').parent(canvasParentRef);
-        button.position(BOARD_LENGTH+BOARD_LENGTH/5, BOARD_LENGTH);
+        button.style('background-color', '#0d6efd');
+        button.style('color', '#ffffff');
+        button.style('border-radius', '5px');
+        button.style('font-size', '16px');
+        button.position(BOARD_LENGTH+50, BOARD_LENGTH-50);
         button.mousePressed(submit_bid);
         input_field = p5.createInput().parent(canvasParentRef);
-        input_field.position(BOARD_LENGTH+BOARD_LENGTH/5, BOARD_LENGTH+50);
+        input_field.position(BOARD_LENGTH+50, BOARD_LENGTH);
     }
 
     const draw = (p5: any) =>
     {        
         TIME = p5.millis();
         COUNTDOWN = Math.floor((TIME_DEADLINE-TIME)/1000);
+
+        if (TIME_DEADLINE < TIME && !SHOWING_SOL && IS_HOST)
+        {
+            SHOWING_SOL = true;
+            socket.emit('act-gamestate', SHOWING_SOL);
+            for (var u in room)
+            socket.emit('act-give-move-privilege', )
+        }
+
         p5.background(255, 255, 255);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
@@ -291,8 +326,26 @@ export default function Game(props: any)
         if (room.length != 0) {
             createTable(p5); 
         }
-        p5.text("Current highest bid: " + current_bid.toString(), BOARD_LENGTH*1.5, (BOARD_LENGTH/10)-10);
-        p5.text("Time: " + COUNTDOWN.toString(), BOARD_LENGTH*1.5, 3*BOARD_LENGTH/10);
+        
+        if (current_bid != Infinity) {
+            p5.text("Best Bid: " + current_bid.toString(), BOARD_LENGTH*1.5, (BOARD_LENGTH/10)-10);
+        }
+
+        p5.textSize(64);
+        if (!SHOWING_SOL)
+        {
+       
+            p5.text("Timer: " + COUNTDOWN.toString() + "s", BOARD_LENGTH+50, 200+(table.length)*25);
+        }
+
+        if (!SHOWING_SOL)
+        {
+            p5.text("BIDDING STAGE", BOARD_LENGTH+100, 50);
+        }
+        else {
+            p5.text("SOLUTION STAGE", BOARD_LENGTH+100, 50);
+        }
+
     }
 
     const mousePressed = (p5: any, e: MouseEvent) => 
@@ -458,7 +511,8 @@ export default function Game(props: any)
             return;
         }
 
-        current_bid = value
+        current_bid = value;
+        current_bidder = username;
         socket.emit('act-new-bid', {bid: current_bid, username: username}); //Tell server player has moved   
 
         input_field.value("");
