@@ -133,6 +133,11 @@ const LobbyManager = (req, res) => {
           socket.broadcast.emit('react-test', data);
         })
 
+        socket.on('act-give-move-privilege', data => {
+          socket.broadcast.emit('react-give-move-privilege', data);
+        })
+
+
       })
   }
   res.end()

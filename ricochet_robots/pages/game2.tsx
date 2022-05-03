@@ -162,6 +162,7 @@ export default function Game(props: any)
 
     socket.on('react-give-point', data => //Give point, [username, point])
     {
+        console.log("does this run?")
         for (var u of room)
         {
             if (u.username == data.username)
@@ -169,6 +170,19 @@ export default function Game(props: any)
                 u.score = data.score;
             }
         }
+    })
+
+    socket.on('react-give-move-privilege', data =>
+    {
+        for (var u of room)
+        {
+            u.hasMovePrivilege = (u.username == data) ? true : false;
+            // if (u.username == data)
+            // {
+            //     u.hasMovePrivilege = true;
+            // }
+        }
+        
     })
     
 
@@ -182,7 +196,7 @@ export default function Game(props: any)
         UNIT_LENGTH = BOARD_LENGTH/16;
         
         // Create main canvas
-        p5.createCanvas(BOARD_LENGTH*1, BOARD_LENGTH).parent(canvasParentRef);
+        p5.createCanvas(BOARD_LENGTH*2, BOARD_LENGTH).parent(canvasParentRef);
  
 
         possible_moves = [];
@@ -235,7 +249,8 @@ export default function Game(props: any)
     }
 
     const draw = (p5: any) =>
-    {
+    {        
+
         p5.background(255, 255, 255);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
@@ -258,6 +273,10 @@ export default function Game(props: any)
 
     const mousePressed = (p5: any, e: MouseEvent) => 
     {
+        console.log("IS HOST");
+        console.log(IS_HOST);
+        console.log("SCORE");
+        console.log(room[0].score);
         if (!HAS_MOVE_PRIVELEGE) { return; }
         let mouseX = Math.floor((e.clientX-DIV_DISPLX)/UNIT_LENGTH);
         let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
@@ -305,11 +324,13 @@ export default function Game(props: any)
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
             current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
             socket.emit('act-new-target', {id: random_index});
+            console.log("TRYING TO GIVE POINT");
             for (var u of room)
             {
                 if (u.hasMovePrivilege)
                 {
                     u.score += 1;
+                    console.log("TELLIGN SERVER TO GIVE POINT");
                     socket.emit('act-give-point', {username: u.username, score: u.score});
                 }
             }
@@ -414,6 +435,19 @@ export default function Game(props: any)
         }
         socket.emit('act-new-bid', {bid: input_field.value(), username: username}); //Tell server player has moved              
         input_field.value("");
+
+        socket.emit('act-give-move-privilege', username);
+        for (var u of room)
+        {
+            u.hasMovePrivilege = (u.username == username) ? true : false;
+            // if (u.username == username)
+            // {
+            //     u.hasMovePrivilege = true;
+            // }
+            // else {
+            //     u.hasMovePrivilege 
+            // }
+        }
     }
 
 
