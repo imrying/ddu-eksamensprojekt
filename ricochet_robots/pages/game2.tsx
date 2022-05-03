@@ -17,8 +17,18 @@ var DIV_DISPLX = 29;
 var DIV_DISPLY = 13;
 var HIGHLIGHT_COLOR_ONE: any;
 var HIGHLIGHT_COLOR_TWO: any;
-var HAS_MOVE_PRIVELEGE = true;
+var HAS_MOVE_PRIVELEGE = false;
 var IS_HOST = false;
+var current_bid = Infinity;
+
+// Time management
+var TIME;
+var TIME_DEADLINE = 0;
+var COUNTDOWN = 0;
+
+
+
+
 
 var input_field: any;
 var table = [];
@@ -33,25 +43,25 @@ const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default),
 let socket: any; // socket for lobby
 socket = io();
 
-  //game objects
-  var gamepieces: Array<game_piece> = [];
-  var walls: Array<wall> = [];
-  var highlight_targets: Array<highlight_piece> = [];
-  var current_target: highlight_piece; 
+//game objects
+var gamepieces: Array<game_piece> = [];
+var walls: Array<wall> = [];
+var highlight_targets: Array<highlight_piece> = [];
+var current_target: highlight_piece; 
 
-  var selected_piece: number; //piece player tries to move
-  var temp_possible_moves: Array<[number, number]> = []; // possible moves the player can move
+var selected_piece: number; //piece player tries to move
+var temp_possible_moves: Array<[number, number]> = []; // possible moves the player can move
 
-  var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
+var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
 
-  var possible_moves: any = [];
+var possible_moves: any = [];
 
-  //const [username, setUsername] = useState("");
-  var username = "";
-  
-  //var room = {"room_id": "123", users: [{"username": "test", "host": "true", "score": 0}, {"username": "wowo", "host": "true", "score": 2}]};
-  
-  var room: Array<any> = [];
+//const [username, setUsername] = useState("");
+var username = "";
+
+//var room = {"room_id": "123", users: [{"username": "test", "host": "true", "score": 0}, {"username": "wowo", "host": "true", "score": 2}]};
+
+var room: Array<any> = [];
 
 
 export default function Game(props: any)
@@ -160,6 +170,14 @@ export default function Game(props: any)
         current_target = new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color);
     })
 
+    socket.on('react-new-bid', data => {
+        current_bid = data.bid;
+        if (TIME_DEADLINE - TIME < 20000)
+        {
+            TIME_DEADLINE = TIME + 20000;
+        }
+    })
+
     socket.on('react-give-point', data => //Give point, [username, point])
     {
         console.log("does this run?")
@@ -174,6 +192,7 @@ export default function Game(props: any)
 
     socket.on('react-give-move-privilege', data =>
     {
+        HAS_MOVE_PRIVELEGE = false;
         for (var u of room)
         {
             u.hasMovePrivilege = (u.username == data) ? true : false;
@@ -188,6 +207,8 @@ export default function Game(props: any)
 
     const setup = (p5: any, canvasParentRef: any) => 
     {
+        TIME_DEADLINE = p5.millis() + 20000;
+
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
         HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
 
@@ -250,7 +271,8 @@ export default function Game(props: any)
 
     const draw = (p5: any) =>
     {        
-
+        TIME = p5.millis();
+        COUNTDOWN = Math.floor((TIME_DEADLINE-TIME)/1000);
         p5.background(255, 255, 255);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
@@ -267,16 +289,14 @@ export default function Game(props: any)
         drawBoard(p5);
 
         if (room.length != 0) {
-            createTable(p5);
+            createTable(p5); 
         }
+        p5.text("Current highest bid: " + current_bid.toString(), BOARD_LENGTH*1.5, (BOARD_LENGTH/10)-10);
+        p5.text("Time: " + COUNTDOWN.toString(), BOARD_LENGTH*1.5, 3*BOARD_LENGTH/10);
     }
 
     const mousePressed = (p5: any, e: MouseEvent) => 
     {
-        console.log("IS HOST");
-        console.log(IS_HOST);
-        console.log("SCORE");
-        console.log(room[0].score);
         if (!HAS_MOVE_PRIVELEGE) { return; }
         let mouseX = Math.floor((e.clientX-DIV_DISPLX)/UNIT_LENGTH);
         let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
@@ -324,13 +344,11 @@ export default function Game(props: any)
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
             current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
             socket.emit('act-new-target', {id: random_index});
-            console.log("TRYING TO GIVE POINT");
             for (var u of room)
             {
                 if (u.hasMovePrivilege)
                 {
                     u.score += 1;
-                    console.log("TELLIGN SERVER TO GIVE POINT");
                     socket.emit('act-give-point', {username: u.username, score: u.score});
                 }
             }
@@ -433,20 +451,27 @@ export default function Game(props: any)
             console.log("Bid is not a number")
             return; //can only submit positive integers.
         }
-        socket.emit('act-new-bid', {bid: input_field.value(), username: username}); //Tell server player has moved              
+        let value = Number(input_field.value())     
+        
+        if ( value > current_bid ) {
+            console.log("Bid is not the better than the current bid");
+            return;
+        }
+
+        current_bid = value
+        socket.emit('act-new-bid', {bid: current_bid, username: username}); //Tell server player has moved   
+
         input_field.value("");
 
         socket.emit('act-give-move-privilege', username);
+        HAS_MOVE_PRIVELEGE = true;
         for (var u of room)
         {
             u.hasMovePrivilege = (u.username == username) ? true : false;
-            // if (u.username == username)
-            // {
-            //     u.hasMovePrivilege = true;
-            // }
-            // else {
-            //     u.hasMovePrivilege 
-            // }
+        }
+        if (TIME_DEADLINE - TIME < 20000)
+        {
+            TIME_DEADLINE = TIME + 20000;
         }
     }
 
