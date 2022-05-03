@@ -7,8 +7,6 @@ import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
 import p5Types from "p5"; //Import this for typechecking and intellisense
 
-
-
 // GLOBAL CONSTANTS / VARS
 var BOARD_LENGTH = 480;
 var UNIT_LENGTH = 30;
