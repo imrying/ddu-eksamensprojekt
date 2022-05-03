@@ -2,7 +2,7 @@ import React from "react";
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { game_piece, wall, highlight_piece, user} from './classes';
+import { game_piece, wall, highlight_piece, user} from '../classes';
 import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
 import p5Types from "p5"; //Import this for typechecking and intellisense
