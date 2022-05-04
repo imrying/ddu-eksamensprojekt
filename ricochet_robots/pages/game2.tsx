@@ -177,7 +177,7 @@ export default function Game(props: any)
     socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
     {
         HAS_MOVE_PRIVELEGE = false;
-        TIME_DEADLINE = TIME + 30000;
+        TIME_DEADLINE = TIME + 45000;
         current_target = new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color);
     })
 
@@ -192,6 +192,10 @@ export default function Game(props: any)
         if (TIME_DEADLINE - TIME < 10000)
         {
             TIME_DEADLINE = TIME + 10000;
+        }
+        if (TIME_DEADLINE - TIME > 20000)
+        {
+            TIME_DEADLINE = TIME + 20000;
         }
         current_bidder = data.username;
     })
@@ -228,7 +232,7 @@ export default function Game(props: any)
 
     const setup = (p5: any, canvasParentRef: any) => 
     {
-        TIME_DEADLINE = p5.millis() + 10000;
+        TIME_DEADLINE = p5.millis() + 45000;
 
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
         HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
@@ -298,7 +302,7 @@ export default function Game(props: any)
     const draw = (p5: any) =>
     {        
         TIME = p5.millis();
-        COUNTDOWN = Math.floor((TIME_DEADLINE-TIME)/1000);
+        COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
 
         if (TIME_DEADLINE < TIME && !SHOWING_SOL && IS_HOST)
         {
@@ -320,7 +324,7 @@ export default function Game(props: any)
                 let random_index = Math.floor(Math.random() * possible_target_pos.length);
                 current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
                 socket.emit('act-new-target', {id: random_index});
-                TIME_DEADLINE = TIME + 30000;
+                TIME_DEADLINE = TIME + 45000;
             }
         }
 
@@ -345,7 +349,7 @@ export default function Game(props: any)
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
             current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
             socket.emit('act-new-target', {id: random_index});
-            TIME_DEADLINE = TIME + 30000;
+            TIME_DEADLINE = TIME + 45000;
             for (var u of room)
             {
                 u.hasMovePrivilege = false;
@@ -396,6 +400,14 @@ export default function Game(props: any)
         }
 
 
+    }
+
+    const keyPressed = (p5: any, e: KeyboardEvent) => {
+        console.log(e)
+
+        if (e.key == "Enter") {
+            submit_bid();
+        }
     }
 
     const mousePressed = (p5: any, e: MouseEvent) => 
@@ -461,7 +473,7 @@ export default function Game(props: any)
             let random_index = Math.floor(Math.random() * possible_target_pos.length);
             current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
             socket.emit('act-new-target', {id: random_index});
-            TIME_DEADLINE = TIME + 30000;
+            TIME_DEADLINE = TIME + 45000;
             for (var u of room)
             {
                 u.hasMovePrivilege = false;
@@ -588,6 +600,11 @@ export default function Game(props: any)
         {
             TIME_DEADLINE = TIME + 10000;
         }
+
+        if (TIME_DEADLINE - TIME > 20000)
+        {
+            TIME_DEADLINE = TIME + 20000;
+        }
         // socket.emit('act-give-move-privilege', username);
         // HAS_MOVE_PRIVELEGE = true;
     }
@@ -599,7 +616,7 @@ export default function Game(props: any)
             <div className="row">
                 <div className="col-lg-7">
                     <div className="m-3">
-                        <Sketch setup={setup} draw={draw} mousePressed={mousePressed}/>
+                        <Sketch setup={setup} draw={draw} mousePressed={mousePressed} keyPressed={keyPressed}/>
                     </div>
                 </div>
             </div>
