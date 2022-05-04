@@ -46,7 +46,7 @@ export default function Home() {
                         <small id="code" className="form-text text-muted">4 numbers only</small>
                       </div>
                       
-                      <button type="submit" className="btn btn-primary">Submit</button>
+                      <button type="submit" className="btn btn-primary">Join Lobby</button>
                     </form>
 
                     <form action="/api/lobby/create" method="post">

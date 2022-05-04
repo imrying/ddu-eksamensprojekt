@@ -123,21 +123,20 @@ export default function Game(props: any)
         p5.textStyle(p5.BOLD);
         p5.textSize(20);
         p5.text("Username", SHIFT_X, SHIFT_Y);
-        p5.text("score", (SHIFT_X)+180, SHIFT_Y);
+        p5.text("score", (SHIFT_X)+335, SHIFT_Y);
         p5.textStyle(p5.NORMAL);
         
         for (let i=0; i<table.length; i++) {
             p5.text(table[i][0], SHIFT_X, SHIFT_Y+(i+1)*25);
-            p5.text(table[i][1], SHIFT_X+200, SHIFT_Y+(i+1)*25);
-            p5.line(SHIFT_X-20, SHIFT_Y+5+(i)*25, SHIFT_X+250, SHIFT_Y+5+(i)*25);
+            p5.text(table[i][1], SHIFT_X+350, SHIFT_Y+(i+1)*25);
+            p5.line(SHIFT_X-20, SHIFT_Y+5+(i)*25, SHIFT_X+400, SHIFT_Y+5+(i)*25);
         }
-        p5.line(SHIFT_X-20, SHIFT_Y+5+((table.length))*25, SHIFT_X+250, SHIFT_Y+5+(table.length)*25);
-        p5.line(SHIFT_X+150, SHIFT_Y+5, SHIFT_X+150, SHIFT_Y+5+(table.length)*25);
+        p5.line(SHIFT_X-20, SHIFT_Y+5+((table.length))*25, SHIFT_X+400, SHIFT_Y+5+(table.length)*25);
+        p5.line(SHIFT_X+325, SHIFT_Y+5, SHIFT_X+325, SHIFT_Y+5+(table.length)*25);
     }
 
     socket.on('react-client-info', data =>
     {
-        console.log("REACT_CLIENT_INFO");
         room = [];
         for (var u of data.users) //check if your client is the host client
         {
@@ -145,7 +144,6 @@ export default function Game(props: any)
             {
                 if (u.host)
                 {
-                    console.log("SETTING HOST");
                     IS_HOST = true;
                 }
             }
@@ -154,7 +152,6 @@ export default function Game(props: any)
         {
             room.push(new user(u.username, u.host, u.score));
         }
-        console.log(room);
     })
 
     socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
@@ -173,47 +170,52 @@ export default function Game(props: any)
 
     socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
     {
-
         movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
         generate_highlight_squares(movement_data.id);
     })
 
     socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
     {
+        HAS_MOVE_PRIVELEGE = false;
+        TIME_DEADLINE = TIME + 30000;
         current_target = new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color);
     })
 
     socket.on('react-new-bid', data => {
-        current_bid = data.bid;
-        if (TIME_DEADLINE - TIME < 20000)
+        if (data.bid == -1)
         {
-            TIME_DEADLINE = TIME + 20000;
+            current_bid = Infinity;
+        }
+        else {
+            current_bid = data.bid;
+        }
+        if (TIME_DEADLINE - TIME < 10000)
+        {
+            TIME_DEADLINE = TIME + 10000;
         }
         current_bidder = data.username;
     })
 
     socket.on('react-give-point', data => //Give point, [username, point])
     {
-        console.log("does this run?")
         for (var u of room)
         {
             if (u.username == data.username)
             {
-                u.score = data.score;
+                u.score += data.incr;
             }
         }
     })
 
     socket.on('react-give-move-privilege', data =>
     {
-        HAS_MOVE_PRIVELEGE = false;
         for (var u of room)
         {
             u.hasMovePrivilege = (u.username == data) ? true : false;
-            // if (u.username == data)
-            // {
-            //     u.hasMovePrivilege = true;
-            // }
+        }
+        if (data == username)
+        {
+            HAS_MOVE_PRIVELEGE = true;
         }
         
     })
@@ -226,7 +228,7 @@ export default function Game(props: any)
 
     const setup = (p5: any, canvasParentRef: any) => 
     {
-        TIME_DEADLINE = p5.millis() + 20000;
+        TIME_DEADLINE = p5.millis() + 10000;
 
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
         HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
@@ -300,10 +302,55 @@ export default function Game(props: any)
 
         if (TIME_DEADLINE < TIME && !SHOWING_SOL && IS_HOST)
         {
-            SHOWING_SOL = true;
+            if (current_bid != Infinity)
+            {
+                SHOWING_SOL = true;
+                socket.emit('act-gamestate', SHOWING_SOL);
+                socket.emit('act-give-move-privilege', current_bidder);
+                for (var u of room)
+                {
+                    u.hasMovePrivilege = (u.username == current_bidder) ? true : false;
+                }
+                if (current_bidder == username)
+                {
+                    HAS_MOVE_PRIVELEGE = true;
+                }
+            }
+            else {
+                let random_index = Math.floor(Math.random() * possible_target_pos.length);
+                current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
+                socket.emit('act-new-target', {id: random_index});
+                TIME_DEADLINE = TIME + 30000;
+            }
+        }
+
+        // if (IS_HOST)
+
+        if (IS_HOST && current_bid == 0 && SHOWING_SOL)
+        {
+            SHOWING_SOL = false;
             socket.emit('act-gamestate', SHOWING_SOL);
-            for (var u in room)
-            socket.emit('act-give-move-privilege', )
+            for (var u of room)
+            {
+                if (u.hasMovePrivilege)
+                {
+                    u.score -= 1;
+                    socket.emit('act-give-point', {username: u.username, incr: -1});
+                }
+            }
+            socket.emit('act-new-bid', {bid: -1, username: ""}); //Tell server player has moved   
+            current_bid = Infinity;
+            current_bidder = "";
+
+            let random_index = Math.floor(Math.random() * possible_target_pos.length);
+            current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
+            socket.emit('act-new-target', {id: random_index});
+            TIME_DEADLINE = TIME + 30000;
+            for (var u of room)
+            {
+                u.hasMovePrivilege = false;
+            }
+            HAS_MOVE_PRIVELEGE = false;
         }
 
         p5.background(255, 255, 255);
@@ -325,24 +372,29 @@ export default function Game(props: any)
             createTable(p5); 
         }
         
-        if (current_bid != Infinity) {
-            p5.text("Best Bid: " + current_bid.toString(), BOARD_LENGTH*1.5, (BOARD_LENGTH/10)-10);
-        }
+
 
         p5.textSize(64);
         if (!SHOWING_SOL)
         {
-       
             p5.text("Timer: " + COUNTDOWN.toString() + "s", BOARD_LENGTH+50, 200+(table.length)*25);
+            p5.text("BIDDING STAGE", BOARD_LENGTH+100, 50);
+
+
+            if (current_bid != Infinity) {
+                p5.textSize(20);
+                let message = `${current_bidder} bids: ${current_bid.toString()}`;
+                p5.text(message, BOARD_LENGTH+50, 300+(table.length)*25);
+            }
         }
 
-        if (!SHOWING_SOL)
-        {
-            p5.text("BIDDING STAGE", BOARD_LENGTH+100, 50);
-        }
         else {
             p5.text("SOLUTION STAGE", BOARD_LENGTH+100, 50);
+            p5.textSize(20);
+            p5.text(`${current_bidder} showing his ${current_bid} solution.`, BOARD_LENGTH+50, 200+(table.length)*25);
+
         }
+
 
     }
 
@@ -392,18 +444,32 @@ export default function Game(props: any)
         // If your host, and a target is "hit" select a new target.
         if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y)
         {
-            let random_index = Math.floor(Math.random() * possible_target_pos.length);
-            current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-            socket.emit('act-new-target', {id: random_index});
+            SHOWING_SOL = false;
+            socket.emit('act-gamestate', SHOWING_SOL);
             for (var u of room)
             {
                 if (u.hasMovePrivilege)
                 {
                     u.score += 1;
-                    socket.emit('act-give-point', {username: u.username, score: u.score});
+                    socket.emit('act-give-point', {username: u.username, incr: +1});
                 }
             }
+            socket.emit('act-new-bid', {bid: -1, username: ""}); //Tell server player has moved   
+            current_bid = Infinity;
+            current_bidder = "";
+
+            let random_index = Math.floor(Math.random() * possible_target_pos.length);
+            current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
+            socket.emit('act-new-target', {id: random_index});
+            TIME_DEADLINE = TIME + 30000;
+            for (var u of room)
+            {
+                u.hasMovePrivilege = false;
+            }
+            HAS_MOVE_PRIVELEGE = false;
         }
+        current_bid--;
+
     }
 
     const drawBoard = (p5: any) => 
@@ -504,7 +570,7 @@ export default function Game(props: any)
         }
         let value = Number(input_field.value())     
         
-        if ( value > current_bid ) {
+        if ( value >= current_bid || value == 0) {
             console.log("Bid is not the better than the current bid");
             return;
         }
@@ -514,17 +580,16 @@ export default function Game(props: any)
         socket.emit('act-new-bid', {bid: current_bid, username: username}); //Tell server player has moved   
 
         input_field.value("");
-
-        socket.emit('act-give-move-privilege', username);
-        HAS_MOVE_PRIVELEGE = true;
         for (var u of room)
         {
             u.hasMovePrivilege = (u.username == username) ? true : false;
         }
-        if (TIME_DEADLINE - TIME < 20000)
+        if (TIME_DEADLINE - TIME < 10000)
         {
-            TIME_DEADLINE = TIME + 20000;
+            TIME_DEADLINE = TIME + 10000;
         }
+        // socket.emit('act-give-move-privilege', username);
+        // HAS_MOVE_PRIVELEGE = true;
     }
 
 
