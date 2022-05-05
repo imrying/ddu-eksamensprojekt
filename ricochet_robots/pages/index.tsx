@@ -6,8 +6,19 @@ import { useSession, signIn, signOut } from "next-auth/react"
 import Game from './sketch'
 
 
+import {useRouter} from 'next/router'
+import {useState} from 'react'
+
+
 export default function Home() {
   const {data: session} = useSession()
+  const router = useRouter()
+  const [code, setCode] = useState("")
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    router.push(`/lobby/?code=${code}`)
+  }
 
   return (
     <>
@@ -39,17 +50,17 @@ export default function Home() {
                   <div className="card-body">
                     <h5 className="card-title text-center">Join Lobby</h5>
 
-                    <form action="/api/lobby/join" method="post">
+                    <form onSubmit={handleSubmit}>
                       <div className="form-group">
                         <label htmlFor="code">Code</label>
-                        <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" required />
+                        <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" onChange={(e)=>{setCode(e.target.value)}} required />
                         <small id="code" className="form-text text-muted">4 numbers only</small>
                       </div>
                       
                       <button type="submit" className="btn btn-primary">Join Lobby</button>
                     </form>
 
-                    <form action="/api/lobby/create" method="post">
+                    <form action="/api/lobby/create">
 
                       <div className="form-group">
                       </div>

@@ -39,7 +39,7 @@ var table = [];
 const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default), 
 {
   ssr: false
-})
+});
 
 let socket: any; // socket for lobby
 socket = io();
@@ -395,7 +395,7 @@ export default function Game(props: any)
         else {
             p5.text("SOLUTION STAGE", BOARD_LENGTH+100, 50);
             p5.textSize(20);
-            p5.text(`${current_bidder} showing his ${current_bid} solution.`, BOARD_LENGTH+50, 200+(table.length)*25);
+            p5.text(`${current_bidder} showing his ${current_bid} move solution.`, BOARD_LENGTH+50, 200+(table.length)*25);
 
         }
 
@@ -403,7 +403,6 @@ export default function Game(props: any)
     }
 
     const keyPressed = (p5: any, e: KeyboardEvent) => {
-        console.log(e)
 
         if (e.key == "Enter") {
             submit_bid();
@@ -575,6 +574,9 @@ export default function Game(props: any)
 
     function submit_bid()
     {
+        if (SHOWING_SOL) {
+            return;
+        }
         var reg = /^\d+$/;
         if (!reg.test(input_field.value())) {
             console.log("Bid is not a number")
