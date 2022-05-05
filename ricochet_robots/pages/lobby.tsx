@@ -92,6 +92,25 @@ export default function Lobby() {
         }
     }
 
+    function isHost() {
+        
+        if (room.users == undefined) {
+            return false
+        }
+
+        for (let i = 0; i < room.users.length; i++) {
+            if (room.users[i].host) {
+                if (user == room.users[i].username) {
+                    //console.log(room.room_id)
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }
+        }
+    }
+
 
     return (
         <>
@@ -120,9 +139,11 @@ export default function Lobby() {
                     </tbody>
                     </table>  
                 </div>
-                <div className="col-lg-6 mx-auto">
-                    <button type="button" className="btn btn-primary" onClick={startGame}>Start Game</button>  
-                </div>        
+                
+                {isHost() ? 
+                    <div className="col-lg-6 mx-auto">
+                        <button type="button" className="btn btn-primary" onClick={startGame}>Start Game</button>  
+                    </div>  : <p>Waiting for host to start game</p>}
             </div>
         </>
     );
