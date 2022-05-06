@@ -31,8 +31,6 @@ var SHOWING_SOL = false;
 var input_field: any;
 var table = [];
 
-var room_id;
-
 
 // Will only import `react-p5` on client-side
 const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default), 
@@ -59,6 +57,8 @@ var possible_moves: any = [];
 //const [username, setUsername] = useState("");
 var username = "";
 
+var room_id;
+
 
 var room: Array<any> = [];
 
@@ -79,103 +79,6 @@ export default function Game(props: any)
                 fetch('/api/lobby/lobby_manager');
                 console.log("INSIDE TNRONTSORENTO");
                 socket.on('connect', () => {console.log('connected') });
-
-
-                socket.on('react-client-info', data =>
-                {
-                    room = [];
-                    for (var u of data.users) //check if your client is the host client
-                    {
-                        if (u.username == username)
-                        {
-                            if (u.host)
-                            {
-                                IS_HOST = true;
-                            }
-                        }
-                    }
-                    for (var u of data.users)
-                    {
-                        room.push(new user(u.username, u.host, u.score));
-                    }
-                })
-            
-                socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
-                {
-                    if (piece_data.id != -1) //new piece is selected
-                    {
-                        selected_piece = piece_data.id;
-                        generate_highlight_squares(piece_data.id);
-                    }
-                    else { //deselect piece
-                        selected_piece = -1;//no piece selected
-                        highlight_targets = [];
-                        possible_moves = [];
-                    }
-                })
-            
-                socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
-                {
-                    console.log("REACT MOVE PIECE");
-                    movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
-                    generate_highlight_squares(movement_data.id);
-                })
-            
-                socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
-                {
-                    console.log("React new target");
-                    HAS_MOVE_PRIVELEGE = false;
-                    TIME_DEADLINE = TIME + 45000;
-                    current_target = new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color);
-                })
-            
-                socket.on('react-new-bid', data => {
-                    if (data.bid == -1)
-                    {
-                        current_bid = Infinity;
-                    }
-                    else {
-                        current_bid = data.bid;
-                    }
-                    if (TIME_DEADLINE - TIME < 10000)
-                    {
-                        TIME_DEADLINE = TIME + 10000;
-                    }
-                    if (TIME_DEADLINE - TIME > 10000)
-                    {
-                        TIME_DEADLINE = TIME + 10000;
-                    }
-                    current_bidder = data.username;
-                })
-            
-                socket.on('react-give-point', data => //Give point, [username, point])
-                {
-                    for (var u of room)
-                    {
-                        if (u.username == data.username)
-                        {
-                            u.score += data.incr;
-                        }
-                    }
-                })
-            
-                socket.on('react-give-move-privilege', data =>
-                {
-                    for (var u of room)
-                    {
-                        u.hasMovePrivilege = (u.username == data) ? true : false;
-                    }
-                    if (data == username)
-                    {
-                        HAS_MOVE_PRIVELEGE = true;
-                    }
-                    
-                })
-            
-                socket.on('react-gamestate', data =>
-                {
-                    SHOWING_SOL = data;
-                })
 
                 socket.on('react-test', data =>
                 {
@@ -236,6 +139,101 @@ export default function Game(props: any)
     }
 
 
+   socket.on('react-client-info', data =>
+    {
+        room = [];
+        for (var u of data.users) //check if your client is the host client
+        {
+            if (u.username == username)
+            {
+                if (u.host)
+                {
+                    IS_HOST = true;
+                }
+            }
+        }
+        for (var u of data.users)
+        {
+            room.push(new user(u.username, u.host, u.score));
+        }
+    })
+
+    socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
+    {
+        if (piece_data.id != -1) //new piece is selected
+        {
+            selected_piece = piece_data.id;
+            generate_highlight_squares(piece_data.id);
+        }
+        else { //deselect piece
+            selected_piece = -1;//no piece selected
+            highlight_targets = [];
+            possible_moves = [];
+        }
+    })
+
+    socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
+    {
+        console.log("REACT MOVE PIECE");
+        movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
+        generate_highlight_squares(movement_data.id);
+    })
+
+    socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
+    {
+        console.log("React new target");
+        HAS_MOVE_PRIVELEGE = false;
+        TIME_DEADLINE = TIME + 45000;
+        current_target = new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color);
+    })
+
+    socket.on('react-new-bid', data => {
+        if (data.bid == -1)
+        {
+            current_bid = Infinity;
+        }
+        else {
+            current_bid = data.bid;
+        }
+        if (TIME_DEADLINE - TIME < 10000)
+        {
+            TIME_DEADLINE = TIME + 10000;
+        }
+        if (TIME_DEADLINE - TIME > 10000)
+        {
+            TIME_DEADLINE = TIME + 10000;
+        }
+        current_bidder = data.username;
+    })
+
+    socket.on('react-give-point', data => //Give point, [username, point])
+    {
+        for (var u of room)
+        {
+            if (u.username == data.username)
+            {
+                u.score += data.incr;
+            }
+        }
+    })
+
+    socket.on('react-give-move-privilege', data =>
+    {
+        for (var u of room)
+        {
+            u.hasMovePrivilege = (u.username == data) ? true : false;
+        }
+        if (data == username)
+        {
+            HAS_MOVE_PRIVELEGE = true;
+        }
+        
+    })
+
+    socket.on('react-gamestate', data =>
+    {
+        SHOWING_SOL = data;
+    })
     
 
     const setup = (p5: any, canvasParentRef: any) => 
@@ -420,9 +418,9 @@ export default function Game(props: any)
 
     const mousePressed = (p5: any, e: MouseEvent) => 
     {
-        // console.log('act-test');
-        // socket.emit('act-test', room_id);
-        // return;
+        console.log('act-test');
+        socket.emit('act-test', room_id);
+        return;
         if (!HAS_MOVE_PRIVELEGE) { return; }
         let mouseX = Math.floor((e.clientX-DIV_DISPLX)/UNIT_LENGTH);
         let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);

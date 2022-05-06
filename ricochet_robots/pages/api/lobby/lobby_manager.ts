@@ -27,20 +27,13 @@ const LobbyManager = (req, res) => {
     res.socket.server.io = io
     
     io.on('connection', socket => {
+      console.log("a user connected with socket id: ", socket.id);
+      
+      socket.on('disconnect', () => {
+        console.log('a user disconnected: ', socket.id);
+      });
 
-        // socket.on('disconnect', function(){
-        //   // Remove user from users array and update
-        //   // var i = allClients.indexOf(socket);
-        //   // allClients.splice(i, 1);
-        //   for (let i; i < rooms.length; i++) 
-        //   {
-        //     if (rooms[i].socket == socket) 
-        //     {
-        //       // Remove object containing current socket
-        //       rooms.splice(i,1);
-        //     }
-        //   }
-        // });
+
 
         socket.on('update-room', data => {
           socket.broadcast.to(data[0]).emit('update-room')
@@ -78,7 +71,7 @@ const LobbyManager = (req, res) => {
             for (let i = 0; i < rooms[index].users.length; i++) {
                 usernames.push(rooms[index].users[i].username);
             }
-            console.log(usernames)
+
 
             if (usernames.includes(data.username)) { 
               io.in(data.room_id).emit('update-room', {room: rooms[index]});
@@ -88,12 +81,11 @@ const LobbyManager = (req, res) => {
               io.in(data.room_id).emit('update-room', {room: rooms[index], user: user});
             }
           }          
-          console.log(rooms[index]);
+
           
         })
 
         socket.on('act-start-game', data => {
-          console.log("HELLOTASNOIN#############################");
           io.in(data.room_id).emit('react-start-game', {room_id: data.room_id});
         })
 
@@ -108,6 +100,10 @@ const LobbyManager = (req, res) => {
           }
         })
 
+        socket.on('CS-test', () => {
+          console.log("CS_TEST");
+        })
+
         //Game Mechanism
         socket.on('act-move-piece', movement_data => {
           socket.broadcast.emit('react-move-piece', movement_data);
@@ -118,6 +114,8 @@ const LobbyManager = (req, res) => {
         })
 
         socket.on('act-new-target', target_data => {
+          console.log("act new target");
+          
           socket.broadcast.emit('react-new-target', target_data);
         })
 
@@ -130,7 +128,9 @@ const LobbyManager = (req, res) => {
         })
 
         socket.on('act-test', data => {
-          socket.broadcast.emit('react-test', data);
+          console.log("ACT TEST SERVER SIDE", data);
+          io.in(data).emit('react-test', data);
+          //socket.broadcast.emit('react-test', data);
         })
 
         socket.on('act-give-move-privilege', data => {
@@ -140,7 +140,6 @@ const LobbyManager = (req, res) => {
         socket.on('act-gamestate', data => {
           socket.broadcast.emit('react-gamestate', data);
         })
-
 
       })
   }
