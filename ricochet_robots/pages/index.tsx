@@ -57,15 +57,14 @@ export default function Home() {
                         <small id="code" className="form-text text-muted">4 numbers only</small>
                       </div>
                       
-                      <button type="submit" className="btn btn-primary">Join Lobby</button>
+                      <button type="submit" className="btn btn-primary mx-3">Join Lobby</button>
                     </form>
 
                     <form action="/api/lobby/create">
 
                       <div className="form-group">
                       </div>
-
-                      <button type="submit" className="btn btn-secondary"> Create lobby instead </button>
+                        <button type="submit" className="btn btn-secondary m-3"> Create lobby instead </button>
                     </form>
                   </div>
                 </div>

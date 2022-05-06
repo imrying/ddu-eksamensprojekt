@@ -10,7 +10,7 @@ export default function NavBar() {
         <div className="container-fluid">
 
             
-            <a href="http://localhost:3000" className="navbar-brand">Ricochet Robots</a>
+            <a href="https://bouncebots.eu.ngrok.io" className="navbar-brand">Ricochet Robots</a>
            
 
             <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
