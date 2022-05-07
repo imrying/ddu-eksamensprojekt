@@ -34,7 +34,8 @@ const LobbyManager = (req, res) => {
       });
 
         socket.on('update-room', data => {
-          socket.broadcast.to(data[0]).emit('update-room')
+
+          socket.broadcast.to(data.room_id).emit('update-room')
         })
         
         socket.on('join-room', data => {
@@ -110,8 +111,8 @@ const LobbyManager = (req, res) => {
           for (let i = 0; i < rooms.length; i++) {
             if (rooms[i].room_id == data.room_id) {
               socket.join(data.room_id);
-              socket.emit('react-client-info', rooms[i]);
-
+              io.in(data.room_id).emit('react-client-info', rooms[i]);
+              
               break;
             }
           }
@@ -122,40 +123,40 @@ const LobbyManager = (req, res) => {
         })
 
         //Game Mechanism
-        socket.on('act-move-piece', movement_data => {
-          socket.broadcast.emit('react-move-piece', movement_data);
+        socket.on('act-move-piece', data => {
+          socket.broadcast.to(data.room_id).emit('react-move-piece', data);
         })
 
-        socket.on('act-select-piece', piece_data => {
-          socket.broadcast.emit('react-select-piece', piece_data);
+        socket.on('act-select-piece', data => {
+          socket.broadcast.to(data.room_id).emit('react-select-piece', data);
         })
 
-        socket.on('act-new-target', target_data => {
+        socket.on('act-new-target', data => {
           console.log("act new target");
-          
-          socket.broadcast.emit('react-new-target', target_data);
+          socket.broadcast.to(data.room_id).emit('react-new-target', data);
+
         })
 
         socket.on('act-new-bid', data => {
-          socket.broadcast.emit('react-new-bid', data);
+          socket.broadcast.to(data.room_id).emit('react-new-bid', data);
         })
 
         socket.on('act-give-point', data => {
-          socket.broadcast.emit('react-give-point', data);
+          socket.broadcast.to(data.room_id).emit('react-give-point', data);
         })
 
         socket.on('act-test', data => {
           console.log("ACT TEST SERVER SIDE", data);
-          io.in(data).emit('react-test', data);
+          socket.broadcast.to(data.room_id).emit('react-test', data);
           //socket.broadcast.emit('react-test', data);
         })
 
         socket.on('act-give-move-privilege', data => {
-          socket.broadcast.emit('react-give-move-privilege', data);
+          socket.broadcast.to(data.room_id).emit('react-give-move-privilege', data.current_bidder);
         })
 
         socket.on('act-gamestate', data => {
-          socket.broadcast.emit('react-gamestate', data);
+          socket.broadcast.to(data.room_id).emit('react-gamestate', data.SHOWING_SOL);
         })
 
       })

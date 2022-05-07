@@ -96,6 +96,7 @@ export default function Lobby() {
         }
     }
 
+
     function isHost() {
         
         if (room.users == undefined) {
@@ -114,6 +115,7 @@ export default function Lobby() {
             }
         }
     }
+
 
 
     return (

@@ -8,16 +8,42 @@ import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
 import p5Types from "p5";
 
-// GLOBAL CONSTANTS / VARS
-var BOARD_LENGTH = 480;
-var UNIT_LENGTH = 30;
-var TOP_BAR_HEIGHT = 60;
+// Window scale factors
+var SKETCH_HEIGHT;
+var SKETCH_WIDTH;
+
+var BOARD_HEIGHT;
+var BOARD_WIDTH;
+var UNIT_LENGTH;
+var BOARD_SQUARES_X = 16;
+var BOARD_SQUARES_Y = 16;
+
+var SCORE_WIDTH;
+var SCORE_HEIGHT;
+
 var DIV_DISPLX = 29;
 var DIV_DISPLY = 13;
+var TOP_BAR_HEIGHT = 60;
+
+var MARGIN = 20;
+
+var HEADER_TEXT = "";
+
+
+
+//GAME OBJECTS
+var colors;
+
+
+
+
+
+
+
 var HIGHLIGHT_COLOR_ONE: any;
 var HIGHLIGHT_COLOR_TWO: any;
 var HAS_MOVE_PRIVELEGE = false;
-var SCREEN_WIDTH = 0;
+
 var IS_HOST = false;
 var current_bid = Infinity;
 var current_bidder = "";
@@ -31,7 +57,6 @@ var SHOWING_SOL = false;
 var colors: Array<any> = [];
 
 var input_field: any;
-var table = [];
 
 var room_id;
 
@@ -182,51 +207,59 @@ export default function Game(props: any)
         })
         
     }, [router.isReady]);
-    
-    
-
-
-
 
     async function Login() {
         const session = await getSession()
         return session;
     }
 
-    const createTable = (p5: any) =>
-    {
-        table = [];
-        for (let i = 0; i < room.length; i++)
-        {
-            var row = []
-            row.push(room[i].username, room[i].score);
-            table.push(row);
-        }
+    // const createTable = (p5: any) =>
+    // {
+    //     table = [];
+    //     for (let i = 0; i < room.length; i++)
+    //     {
+    //         var row = []
+    //         row.push(room[i].username, room[i].score);
+    //         table.push(row);
+    //     }
 
-        showTable(p5);
+    //     showTable(p5);
         
-    }
+    // }
 
-    const showTable = (p5: any) =>
+    const renderTable = (p5: any, text_size: number) =>
     {
-        let SHIFT_X = BOARD_LENGTH+50;
-        let SHIFT_Y = 100;
-
+        let name_column_width = SCORE_WIDTH/3;
+        let score_column_widt = 2 * text_size;
         p5.strokeWeight(1);
-
         p5.textStyle(p5.BOLD);
-        p5.textSize(20);
-        p5.text("Username", SHIFT_X, SHIFT_Y);
-        p5.text("score", (SHIFT_X)+335, SHIFT_Y);
+        p5.textSize(text_size);
+
+        p5.text("Username", MARGIN, 0);
+        p5.text("score", name_column_width + MARGIN, 0);
+
         p5.textStyle(p5.NORMAL);
         
-        for (let i=0; i<table.length; i++) {
-            p5.text(table[i][0], SHIFT_X, SHIFT_Y+(i+1)*25);
-            p5.text(table[i][1], SHIFT_X+350, SHIFT_Y+(i+1)*25);
-            p5.line(SHIFT_X-20, SHIFT_Y+5+(i)*25, SHIFT_X+400, SHIFT_Y+5+(i)*25);
+        for (let i = 1; i < room.length+1; i++)
+        {
+            p5.text(room[i-1].username, 0, text_size * 1.5 * i);
+            p5.text(room[i-1].score, name_column_width, text_size * 1.5 * i);
+            p5.line(-MARGIN/2, text_size * 1.5 * i + MARGIN/2, name_column_width - MARGIN/2, text_size * 1.5 * i + MARGIN/2);
+
+            /////////////TEST
+            p5.text(room[i-1].username, MARGIN, text_size * 1.5 * (i+1));
+            p5.text(room[i-1].score, name_column_width, text_size * 1.5 * (i+1));
+            p5.line(-20, 5 + text_size * 1.5 * (i+1), 400, 5 + text_size * 1.5 * (i+1));
+
+                        /////////////TEST
+                        p5.text(room[i-1].username, MARGIN, text_size * 1.5 * (i+2));
+                        p5.text(room[i-1].score, name_column_width, text_size * 1.5 * (i+2));
+                        p5.line(-20, 5 + text_size * 1.5 * (i+2), 400, 5 + text_size * 1.5 * (i+2));
+
+            /////////////////////
         }
-        p5.line(SHIFT_X-20, SHIFT_Y+5+((table.length))*25, SHIFT_X+400, SHIFT_Y+5+(table.length)*25);
-        p5.line(SHIFT_X+325, SHIFT_Y+5, SHIFT_X+325, SHIFT_Y+5+(table.length)*25);
+        // p5.line(20, 5+((room.length))*25, 400, 5+(room.length)*25);
+        // p5.line(325, 5, 325, 5+(room.length)*25);
     }
 
 
@@ -234,18 +267,32 @@ export default function Game(props: any)
 
     const setup = (p5: any, canvasParentRef: any) => 
     {
+        //UI Scaling management
+        SKETCH_HEIGHT = window.innerHeight - TOP_BAR_HEIGHT - DIV_DISPLY - MARGIN;
+        SKETCH_WIDTH = window.innerWidth - DIV_DISPLX - MARGIN;
+
+        BOARD_HEIGHT = SKETCH_HEIGHT - MARGIN;
+        UNIT_LENGTH = BOARD_HEIGHT / BOARD_SQUARES_Y;
+        BOARD_WIDTH = UNIT_LENGTH * BOARD_SQUARES_X;
+
+        SCORE_HEIGHT = BOARD_HEIGHT;
+        SCORE_WIDTH = SKETCH_WIDTH - BOARD_WIDTH - MARGIN;
+
+        p5.createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT).parent(canvasParentRef);
+
+        console.log(SCORE_WIDTH);
+
         TIME_DEADLINE = p5.millis() + 45000;
 
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
         HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
 
-        // Calculate window size
-        BOARD_LENGTH = window.innerHeight - TOP_BAR_HEIGHT - DIV_DISPLY - 20;
-        UNIT_LENGTH = BOARD_LENGTH/16;
-        SCREEN_WIDTH = window.innerWidth - 100;
         
         // Create main canvas
-        p5.createCanvas(SCREEN_WIDTH, BOARD_LENGTH).parent(canvasParentRef);
+
+        // colors
+        colors = [p5.color(255,0,0), p5.color(0,255,0), p5.color(0,0,255), p5.color(255,255,0)];
+
  
 
         possible_moves = [];
@@ -254,10 +301,10 @@ export default function Game(props: any)
         current_target = new highlight_piece(0, 0, 7, p5.color(50, 50, 99));
         
 
-        gamepieces.push(new game_piece(0, 5, 7, p5.color(100, 200, 50)));
-        gamepieces.push(new game_piece(1, 7, 4, p5.color(200, 0, 9)));
-        gamepieces.push(new game_piece(2, 15, 15, p5.color(0, 200, 200)));
-        gamepieces.push(new game_piece(3, 0, 15, p5.color(100, 100, 200)));
+        gamepieces.push(new game_piece(0, 5, 7, colors[0]));
+        gamepieces.push(new game_piece(1, 7, 4, colors[1]));
+        gamepieces.push(new game_piece(2, 15, 15, colors[2]));
+        gamepieces.push(new game_piece(3, 0, 15, colors[3]));
 
         //Where can target spawn (x,y)
         possible_target_pos = [
@@ -295,14 +342,14 @@ export default function Game(props: any)
         button.style('color', '#ffffff');
         button.style('border-radius', '5px');
         button.style('font-size', '16px');
-        button.position(BOARD_LENGTH+50, BOARD_LENGTH-50);
+        button.position(BOARD_HEIGHT+50, BOARD_HEIGHT-50);
         button.mousePressed(submit_bid);
         input_field = p5.createInput().parent(canvasParentRef);
-        input_field.position(BOARD_LENGTH+50, BOARD_LENGTH);
+        input_field.position(BOARD_HEIGHT+50, BOARD_HEIGHT);
     }
 
     const draw = (p5: any) =>
-    {        
+    {
         TIME = p5.millis();
         COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
 
@@ -311,8 +358,8 @@ export default function Game(props: any)
             if (current_bid != Infinity)
             {
                 SHOWING_SOL = true;
-                socket.emit('act-gamestate', SHOWING_SOL);
-                socket.emit('act-give-move-privilege', current_bidder);
+                socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
+                socket.emit('act-give-move-privilege', {room_id: room_id, current_bidder: current_bidder});
                 for (var u of room)
                 {
                     u.hasMovePrivilege = (u.username == current_bidder) ? true : false;
@@ -326,7 +373,7 @@ export default function Game(props: any)
                 let random_index = get_random_index();
 
                 current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-                socket.emit('act-new-target', {id: random_index});
+                socket.emit('act-new-target', {room_id: room_id, id: random_index});
                 TIME_DEADLINE = TIME + 45000;
             }
         }
@@ -334,21 +381,21 @@ export default function Game(props: any)
         if (IS_HOST && current_bid == 0 && SHOWING_SOL)
         {
             SHOWING_SOL = false;
-            socket.emit('act-gamestate', SHOWING_SOL);
+            socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
             for (var u of room)
             {
                 if (u.hasMovePrivilege)
                 {
                     u.score -= 1;
-                    socket.emit('act-give-point', {username: u.username, incr: -1});
+                    socket.emit('act-give-point', {room_id: room_id, username: u.username, incr: -1});
                 }
             }
-            socket.emit('act-new-bid', {bid: -1, username: ""}); //Tell server player has moved   
+            socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
             current_bid = Infinity;
             current_bidder = "";
             let random_index = get_random_index();
             current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-            socket.emit('act-new-target', {id: random_index});
+            socket.emit('act-new-target', {room_id: room_id, id: random_index});
             TIME_DEADLINE = TIME + 45000;
             for (var u of room)
             {
@@ -358,44 +405,61 @@ export default function Game(props: any)
         }
 
         p5.background(255, 255, 255);
+
+        //RENDERING THE GAME BOARD
+        p5.push();
+        p5.translate(MARGIN/2, MARGIN/2);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
         }
         current_target.render(p5, UNIT_LENGTH);
-        
+        renderBoard(p5);
         for (const g of gamepieces) {
             g.render(p5, UNIT_LENGTH);
         }
         for (const g of walls) {
             g.render(p5, UNIT_LENGTH);
         }
+        p5.pop();
 
-        drawBoard(p5);
+        //RENDERING THE SCORE BOARD
+        p5.push();
+        let text_size = 0.14*SCORE_WIDTH-22; //found in geogebra
+        p5.translate(BOARD_WIDTH + 3*MARGIN/2, MARGIN/2+text_size);
+        p5.textSize(text_size);
+        p5.text(HEADER_TEXT, 0, 0);
 
-        if (room.length != 0) {
-            createTable(p5); 
-        }
+        p5.translate(0, 2*MARGIN);
+        renderTable(p5, text_size/3);
+        p5.pop();
+
+
+
+
+        // if (room.length != 0) {
+
+        // }
         
 
 
         p5.textSize(64);
         if (!SHOWING_SOL)
         {
-            p5.text("Timer: " + COUNTDOWN.toString() + "s", BOARD_LENGTH+50, 200+(table.length)*25);
-            p5.text("BIDDING STAGE", BOARD_LENGTH+100, 50);
+            HEADER_TEXT = "BIDDING STAGE";
+            p5.text("Timer: " + COUNTDOWN.toString() + "s", BOARD_HEIGHT + 200, 500);
 
 
             if (current_bid != Infinity) {
                 p5.textSize(20);
                 let message = `${current_bidder} bids: ${current_bid.toString()}`;
-                p5.text(message, BOARD_LENGTH+50, 300+(table.length)*25);
+                p5.text(message, BOARD_HEIGHT+50, 300);
             }
         }
 
         else {
-            p5.text("SOLUTION STAGE", BOARD_LENGTH+100, 50);
+            HEADER_TEXT = "SOLUTION STAGE";
             p5.textSize(20);
-            p5.text(`${current_bidder} showing his ${current_bid} move solution.`, BOARD_LENGTH+50, 200+(table.length)*25);
+            p5.text(`${current_bidder} showing his ${current_bid} move solution.`, BOARD_HEIGHT+50, 200);
 
         }
 
@@ -423,7 +487,7 @@ export default function Game(props: any)
             if (mouseX == move_pos[0] && mouseY == move_pos[1])
             {
                 movePlayer(selected_piece, mouseX, mouseY);
-                socket.emit('act-move-piece', {id: selected_piece, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
+                socket.emit('act-move-piece', {room_id: room_id, id: selected_piece, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
                 generate_highlight_squares(selected_piece);
                 return;
             }
@@ -435,13 +499,13 @@ export default function Game(props: any)
             if (mouseX == g.pos_x && mouseY == g.pos_y && g.id != selected_piece)
             {
                 selected_piece = g.id;
-                socket.emit('act-select-piece', {id: g.id}); //Tell server a new piece is selected
+                socket.emit('act-select-piece', {room_id: room_id, id: g.id}); //Tell server a new piece is selected
                 generate_highlight_squares(g.id);
                 return;
             }
         }
         selected_piece = -1;
-        socket.emit('act-select-piece', {id: -1}); //tell server piece is deselected
+        socket.emit('act-select-piece', {room_id: room_id, id: -1}); //tell server piece is deselected
         highlight_targets = [];
         possible_moves = [];
     }
@@ -456,23 +520,23 @@ export default function Game(props: any)
         if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y)
         {
             SHOWING_SOL = false;
-            socket.emit('act-gamestate', SHOWING_SOL);
+            socket.emit('act-gamestate', {SHOWING_SOL: SHOWING_SOL, room_id: room_id});
             for (var u of room)
             {
                 if (u.hasMovePrivilege)
                 {
                     u.score += 1;
-                    socket.emit('act-give-point', {username: u.username, incr: +1});
+                    socket.emit('act-give-point', {room_id: room_id, username: u.username, incr: +1});
                 }
             }
-            socket.emit('act-new-bid', {bid: -1, username: ""}); //Tell server player has moved   
+            socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
             current_bid = Infinity;
             current_bidder = "";
 
             let random_index = get_random_index();
 
             current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-            socket.emit('act-new-target', {id: random_index});
+            socket.emit('act-new-target', {room_id: room_id, id: random_index});
             TIME_DEADLINE = TIME + 45000;
             for (var u of room)
             {
@@ -506,27 +570,19 @@ export default function Game(props: any)
         return random_index;
     }
 
-    const drawBoard = (p5: any) => 
+    const renderBoard = (p5: any) => //Draws base layer of game board;
     {
-        for (let i = 0; i < 17; i++)
+        for (let i = 0; i <= BOARD_SQUARES_X; i++)
         {
-            if (i == 0 || i == 16)
-            {
-                p5.strokeWeight(5);
-            }
-            else {
-                p5.strokeWeight(1);
-            }
-            if (i == 8)
-            {
-                p5.line(UNIT_LENGTH*i,0, UNIT_LENGTH*i, BOARD_LENGTH);
-                p5.line(0, UNIT_LENGTH*i, BOARD_LENGTH, UNIT_LENGTH*i);
-            }
-            else {
-                p5.line(UNIT_LENGTH*i,0, UNIT_LENGTH*i, BOARD_LENGTH);
-                p5.line(0, UNIT_LENGTH*i, BOARD_LENGTH, UNIT_LENGTH*i);
-            }
-
+            let stroke = (i == 0 || i == BOARD_SQUARES_X) ? 5 : 1;
+            p5.strokeWeight(stroke);
+            p5.line(UNIT_LENGTH*i, 0, UNIT_LENGTH*i, BOARD_HEIGHT);
+        }
+        for (let i = 0; i <= BOARD_SQUARES_Y; i++)
+        {
+            let stroke = (i == 0 || i == BOARD_SQUARES_Y) ? 5 : 1;
+            p5.strokeWeight(stroke);
+            p5.line(0, UNIT_LENGTH*i, BOARD_WIDTH, UNIT_LENGTH*i);
         }
     }
 
@@ -614,7 +670,7 @@ export default function Game(props: any)
 
         current_bid = value;
         current_bidder = username;
-        socket.emit('act-new-bid', {bid: current_bid, username: username}); //Tell server player has moved   
+        socket.emit('act-new-bid', {room_id: room_id, bid: current_bid, username: username}); //Tell server player has moved   
 
         input_field.value("");
         for (var u of room)
