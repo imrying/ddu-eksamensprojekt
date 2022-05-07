@@ -9,7 +9,7 @@ import { getSession } from "next-auth/react";
 
 
 const socket = io(); // socket for lobby
-
+var username;
 
 export default function Lobby() {
     
@@ -38,7 +38,7 @@ export default function Lobby() {
           }
 
         
-        var username;
+        
 
         Login().then(session => {
             if(session) {
@@ -74,6 +74,13 @@ export default function Lobby() {
         socket.on("react-start-game", data => {
             socket.disconnect();
             router.push('/game2' + '?room_id=' + data.room_id);
+        });
+
+        socket.on('react-remove-self', data => {
+            if (data.username == username) {
+                socket.disconnect();
+                router.push('https://bouncebots.eu.ngrok.io/');
+            }
         });
     }, [])
 
@@ -122,6 +129,8 @@ export default function Lobby() {
                         <tr>
                         <th scope="col">#</th>
                         <th scope="col">Name</th>
+                        {isHost() ? <th scope="col">Remove</th> : null}
+                        
                         </tr>
                     </thead>
                     <tbody>
@@ -130,6 +139,19 @@ export default function Lobby() {
                                 <tr key={index}>
                                     <th scope="row">{index+1}</th>
                                     <td>{user}</td>
+
+                                    {isHost() ? <>
+                                        {index != 0 ?
+                                            <td>
+                                                <button className="btn btn-danger" onClick={() => {
+                                                   socket.emit('act-remove-user', {room_id: room.room_id, username: room.users[index].username });
+                                                }}>Remove</button>
+                                            </td>
+                                        : null}
+
+                                    </> : null}
+
+
                                 </tr>
                             )
                         })}

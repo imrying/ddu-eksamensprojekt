@@ -33,8 +33,6 @@ const LobbyManager = (req, res) => {
         console.log('a user disconnected: ', socket.id);
       });
 
-
-
         socket.on('update-room', data => {
           socket.broadcast.to(data[0]).emit('update-room')
         })
@@ -62,7 +60,7 @@ const LobbyManager = (req, res) => {
             }
 
             )
-            io.in(data.room_id).emit('update-room', {room: rooms[rooms.length-1], user: user_host});
+            io.in(data.room_id).emit('update-room', {room: rooms[rooms.length-1]});
           // else push the user to the room
           } else {
             // check if username is already in room
@@ -84,6 +82,25 @@ const LobbyManager = (req, res) => {
 
           
         })
+
+        socket.on('act-remove-user', data => {
+          
+          for (var i = 0; i < rooms.length; i++) {
+            if (rooms[i].room_id == data.room_id) {
+
+              // remove username from data.username from room
+              for (var j = 0; j < rooms[i].users.length; j++) {
+                if (rooms[i].users[j].username == data.username) {
+                  rooms[i].users.splice(j, 1);
+                  io.in(data.room_id).emit('react-remove-self', {username: data.username});
+                  io.in(data.room_id).emit('update-room', {room: rooms[i]})
+                  break;
+                }
+              }
+            }
+          }
+        });
+
 
         socket.on('act-start-game', data => {
           io.in(data.room_id).emit('react-start-game', {room_id: data.room_id});
