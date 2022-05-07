@@ -32,8 +32,6 @@ var HEADER_TEXT = "";
 
 
 
-//GAME OBJECTS
-var colors;
 
 
 
@@ -151,7 +149,7 @@ export default function Game(props: any)
                 {
                     HAS_MOVE_PRIVELEGE = false;
                     TIME_DEADLINE = TIME + 45000;
-                    current_target = new highlight_piece(0, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], current_target.color);
+                    current_target = new highlight_piece(target_data.color_id, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], colors[target_data.color_id]);
                 })
             
                 socket.on('react-new-bid', data => {
@@ -259,21 +257,20 @@ export default function Game(props: any)
         //TIME MANAGEMENT
         TIME_DEADLINE = p5.millis() + 45000;
 
-        HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
-        HIGHLIGHT_COLOR_TWO = p5.color(255,255,0,90);
+
 
         
         // Create main canvas
 
         // COLOR INITILIZATION
         colors = [p5.color(255,0,0), p5.color(0,255,0), p5.color(0,0,255), p5.color(255,255,0)];
-
- 
+        HIGHLIGHT_COLOR_ONE = p5.color(0,0,0,70);
+        HIGHLIGHT_COLOR_TWO = p5.color(150,150,150,70);
 
         possible_moves = [];
 
         // Set first target
-        current_target = new highlight_piece(0, 0, 7, p5.color(50, 50, 99));
+        current_target = new highlight_piece(0, 0, 7, colors[0]);
         
 
         gamepieces.push(new game_piece(0, 5, 7, colors[0]));
@@ -329,10 +326,10 @@ export default function Game(props: any)
     {
         p5.push();
         p5.translate(MARGIN/2, MARGIN/2);
+        current_target.render(p5, UNIT_LENGTH);
         for (const g of highlight_targets) {
             g.render(p5, UNIT_LENGTH);
         }
-        current_target.render(p5, UNIT_LENGTH);
         renderBoard(p5);
         for (const g of gamepieces) {
             g.render(p5, UNIT_LENGTH);
@@ -379,6 +376,14 @@ export default function Game(props: any)
         p5.pop();
     }
 
+    const select_new_target = (p5: any) =>
+    {
+        let random_index = get_random_index(); //GET
+        let color_id = Math.floor(Math.random() * 4);
+        current_target = new highlight_piece(color_id, possible_target_pos[random_index][0], possible_target_pos[random_index][1], colors[color_id]);
+        socket.emit('act-new-target', {room_id: room_id, id: random_index, color_id: color_id});
+    }
+
     const draw = (p5: any) =>
     {
         TIME = p5.millis();
@@ -401,10 +406,7 @@ export default function Game(props: any)
                 }
             }
             else {
-                let random_index = get_random_index();
-
-                current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-                socket.emit('act-new-target', {room_id: room_id, id: random_index});
+                select_new_target(p5);
                 TIME_DEADLINE = TIME + 45000;
             }
         }
@@ -424,9 +426,7 @@ export default function Game(props: any)
             socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
             current_bid = Infinity;
             current_bidder = "";
-            let random_index = get_random_index();
-            current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-            socket.emit('act-new-target', {room_id: room_id, id: random_index});
+            select_new_target(p5);
             TIME_DEADLINE = TIME + 45000;
             for (var u of room)
             {
@@ -493,7 +493,7 @@ export default function Game(props: any)
         g.pos_y = pos_y;   
 
         // If your host, and a target is "hit" select a new target.
-        if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y)
+        if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y && current_target.id == g.id)
         {
             SHOWING_SOL = false;
             socket.emit('act-gamestate', {SHOWING_SOL: SHOWING_SOL, room_id: room_id});
@@ -509,10 +509,7 @@ export default function Game(props: any)
             current_bid = Infinity;
             current_bidder = "";
 
-            let random_index = get_random_index();
-
-            current_target = new highlight_piece(0, possible_target_pos[random_index][0], possible_target_pos[random_index][1], current_target.color);
-            socket.emit('act-new-target', {room_id: room_id, id: random_index});
+            select_new_target(p5);
             TIME_DEADLINE = TIME + 45000;
             for (var u of room)
             {
@@ -526,8 +523,9 @@ export default function Game(props: any)
 
     function get_random_index()
     {
+        let random_index;
         while (true) {
-            let random_index = Math.floor(Math.random() * possible_target_pos.length);
+            random_index = Math.floor(Math.random() * possible_target_pos.length);
             let position_errors = false;
             for (let i = 0; i < gamepieces.length; i++) {
                 let g = gamepieces[i];
@@ -567,6 +565,8 @@ export default function Game(props: any)
         var piece: game_piece = gamepieces[idx];
         possible_moves = [];
         highlight_targets = [];
+
+        highlight_targets.push(new highlight_piece(0, piece.pos_x, piece.pos_y, HIGHLIGHT_COLOR_TWO));
 
         for (var [x,y] of [[-1,0], [1,0], [0,-1], [0,1]])
         {
