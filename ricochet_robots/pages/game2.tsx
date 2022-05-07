@@ -31,6 +31,7 @@ var HEADER_TEXT = "";
 
 
 
+
 //GAME OBJECTS
 var colors;
 
@@ -213,30 +214,17 @@ export default function Game(props: any)
         return session;
     }
 
-    // const createTable = (p5: any) =>
-    // {
-    //     table = [];
-    //     for (let i = 0; i < room.length; i++)
-    //     {
-    //         var row = []
-    //         row.push(room[i].username, room[i].score);
-    //         table.push(row);
-    //     }
-
-    //     showTable(p5);
-        
-    // }
-
     const renderTable = (p5: any, text_size: number) =>
     {
-        let name_column_width = SCORE_WIDTH/3;
-        let score_column_widt = 2 * text_size;
+        let name_column_width = SCORE_WIDTH*3/5;
+        let score_column_width = 4 * text_size;
         p5.strokeWeight(1);
         p5.textStyle(p5.BOLD);
         p5.textSize(text_size);
 
-        p5.text("Username", MARGIN, 0);
-        p5.text("score", name_column_width + MARGIN, 0);
+        p5.text("Username", 0, 0);
+        p5.text("score", name_column_width, 0);
+        p5.line(-MARGIN/2, MARGIN/2, name_column_width + score_column_width - MARGIN/2, MARGIN/2);
 
         p5.textStyle(p5.NORMAL);
         
@@ -244,22 +232,9 @@ export default function Game(props: any)
         {
             p5.text(room[i-1].username, 0, text_size * 1.5 * i);
             p5.text(room[i-1].score, name_column_width, text_size * 1.5 * i);
-            p5.line(-MARGIN/2, text_size * 1.5 * i + MARGIN/2, name_column_width - MARGIN/2, text_size * 1.5 * i + MARGIN/2);
-
-            /////////////TEST
-            p5.text(room[i-1].username, MARGIN, text_size * 1.5 * (i+1));
-            p5.text(room[i-1].score, name_column_width, text_size * 1.5 * (i+1));
-            p5.line(-20, 5 + text_size * 1.5 * (i+1), 400, 5 + text_size * 1.5 * (i+1));
-
-                        /////////////TEST
-                        p5.text(room[i-1].username, MARGIN, text_size * 1.5 * (i+2));
-                        p5.text(room[i-1].score, name_column_width, text_size * 1.5 * (i+2));
-                        p5.line(-20, 5 + text_size * 1.5 * (i+2), 400, 5 + text_size * 1.5 * (i+2));
-
-            /////////////////////
+            p5.line(-MARGIN/2, text_size * 1.5 * i + MARGIN/2, name_column_width + score_column_width - MARGIN/2, text_size * 1.5 * i + MARGIN/2);
         }
-        // p5.line(20, 5+((room.length))*25, 400, 5+(room.length)*25);
-        // p5.line(325, 5, 325, 5+(room.length)*25);
+        p5.line(name_column_width - MARGIN/2, MARGIN/2, name_column_width - MARGIN/2, room.length * text_size * 1.5 + MARGIN/2)
     }
 
 
@@ -268,6 +243,7 @@ export default function Game(props: any)
     const setup = (p5: any, canvasParentRef: any) => 
     {
         //UI Scaling management
+        MARGIN = 0.011 * window.innerWidth;
         SKETCH_HEIGHT = window.innerHeight - TOP_BAR_HEIGHT - DIV_DISPLY - MARGIN;
         SKETCH_WIDTH = window.innerWidth - DIV_DISPLX - MARGIN;
 
@@ -280,8 +256,7 @@ export default function Game(props: any)
 
         p5.createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT).parent(canvasParentRef);
 
-        console.log(SCORE_WIDTH);
-
+        //TIME MANAGEMENT
         TIME_DEADLINE = p5.millis() + 45000;
 
         HIGHLIGHT_COLOR_ONE = p5.color(255,255,0);
@@ -290,7 +265,7 @@ export default function Game(props: any)
         
         // Create main canvas
 
-        // colors
+        // COLOR INITILIZATION
         colors = [p5.color(255,0,0), p5.color(0,255,0), p5.color(0,0,255), p5.color(255,255,0)];
 
  
@@ -336,16 +311,72 @@ export default function Game(props: any)
         {
             walls.push(new wall(false, x[0], x[1]));
         }
+
+        //Bidding button
         let button;
         button = p5.createElement('button', 'Submit Bid').parent(canvasParentRef);
         button.style('background-color', '#0d6efd');
         button.style('color', '#ffffff');
         button.style('border-radius', '5px');
         button.style('font-size', '16px');
-        button.position(BOARD_HEIGHT+50, BOARD_HEIGHT-50);
+        button.position(DIV_DISPLX + MARGIN + BOARD_WIDTH, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 100);
         button.mousePressed(submit_bid);
         input_field = p5.createInput().parent(canvasParentRef);
-        input_field.position(BOARD_HEIGHT+50, BOARD_HEIGHT);
+        input_field.position(DIV_DISPLX + MARGIN + BOARD_WIDTH, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 50);
+    }
+
+    const render_gameboard = (p5: any) =>
+    {
+        p5.push();
+        p5.translate(MARGIN/2, MARGIN/2);
+        for (const g of highlight_targets) {
+            g.render(p5, UNIT_LENGTH);
+        }
+        current_target.render(p5, UNIT_LENGTH);
+        renderBoard(p5);
+        for (const g of gamepieces) {
+            g.render(p5, UNIT_LENGTH);
+        }
+        for (const g of walls) {
+            g.render(p5, UNIT_LENGTH);
+        }
+        p5.pop();
+    }
+
+    const render_scoreboard = (p5: any) =>
+    {
+        p5.push();
+        let text_size = 0.14*SCORE_WIDTH-22; //found in geogebra
+        p5.translate(BOARD_WIDTH + 3*MARGIN/2, MARGIN/2+text_size);
+        p5.textSize(text_size);
+        p5.text(HEADER_TEXT, 0, 0);
+
+        p5.translate(0, 5*MARGIN);
+        text_size = text_size/3;
+        renderTable(p5, text_size);
+
+        text_size = text_size * 2;
+        p5.textSize(text_size);
+        p5.translate(0, room.length * text_size * 1.5 + 1 * MARGIN);
+        if (!SHOWING_SOL)
+        {
+            HEADER_TEXT = "BIDDING STAGE";
+            p5.text("Timer: " + COUNTDOWN.toString() + "s", 0, 0);
+            text_size = text_size / 2;
+            p5.textSize(text_size);
+            p5.translate(0, text_size + 1 * MARGIN);
+            if (current_bid != Infinity) {
+                let message = `${current_bidder} bids: ${current_bid.toString()}`;
+                p5.text(message, 0, 0);
+            }
+        }
+        else {
+            HEADER_TEXT = "SOLUTION STAGE";
+            text_size = text_size / 2;
+            p5.textSize(text_size);
+            p5.text(`${current_bidder} showing his ${current_bid} move solution.`, 0, 0);
+        }
+        p5.pop();
     }
 
     const draw = (p5: any) =>
@@ -406,64 +437,9 @@ export default function Game(props: any)
 
         p5.background(255, 255, 255);
 
-        //RENDERING THE GAME BOARD
-        p5.push();
-        p5.translate(MARGIN/2, MARGIN/2);
-        for (const g of highlight_targets) {
-            g.render(p5, UNIT_LENGTH);
-        }
-        current_target.render(p5, UNIT_LENGTH);
-        renderBoard(p5);
-        for (const g of gamepieces) {
-            g.render(p5, UNIT_LENGTH);
-        }
-        for (const g of walls) {
-            g.render(p5, UNIT_LENGTH);
-        }
-        p5.pop();
-
-        //RENDERING THE SCORE BOARD
-        p5.push();
-        let text_size = 0.14*SCORE_WIDTH-22; //found in geogebra
-        p5.translate(BOARD_WIDTH + 3*MARGIN/2, MARGIN/2+text_size);
-        p5.textSize(text_size);
-        p5.text(HEADER_TEXT, 0, 0);
-
-        p5.translate(0, 2*MARGIN);
-        renderTable(p5, text_size/3);
-        p5.pop();
-
-
-
-
-        // if (room.length != 0) {
-
-        // }
-        
-
-
-        p5.textSize(64);
-        if (!SHOWING_SOL)
-        {
-            HEADER_TEXT = "BIDDING STAGE";
-            p5.text("Timer: " + COUNTDOWN.toString() + "s", BOARD_HEIGHT + 200, 500);
-
-
-            if (current_bid != Infinity) {
-                p5.textSize(20);
-                let message = `${current_bidder} bids: ${current_bid.toString()}`;
-                p5.text(message, BOARD_HEIGHT+50, 300);
-            }
-        }
-
-        else {
-            HEADER_TEXT = "SOLUTION STAGE";
-            p5.textSize(20);
-            p5.text(`${current_bidder} showing his ${current_bid} move solution.`, BOARD_HEIGHT+50, 200);
-
-        }
-
-
+        //RENDERING
+        render_gameboard(p5);
+        render_scoreboard(p5); 
     }
 
     const keyPressed = (p5: any, e: KeyboardEvent) => {

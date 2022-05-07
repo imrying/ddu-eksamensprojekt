@@ -148,6 +148,8 @@ export default function Lobby() {
                                                 <button className="btn btn-danger" onClick={() => {
                                                    socket.emit('act-remove-user', {room_id: room.room_id, username: room.users[index].username });
                                                 }}>Remove</button>
+
+
                                             </td>
                                         : null}
 
