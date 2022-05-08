@@ -8,7 +8,7 @@ import React from 'react';
 import { getSession } from "next-auth/react";
 import "react-notifications/lib/notifications.css";
 import { NotificationManager } from 'react-notifications';
-
+import { useBeforeunload } from 'react-beforeunload';
 
 
 
@@ -23,9 +23,29 @@ export default function Lobby() {
     const [room, setRoom] = useState([])
     const [user, setUser] = useState({})
 
+
+
     const showNotification = (username) => {
         NotificationManager.success(`${username} joined the room`, 'New player!', 3000);
     }
+
+    // useBeforeunload((event) => {
+    //     alert('You are leaving the room')
+    //     useBeforeunload((event) => {
+    //     socket.emit('act-leave', { username: username, room_id: room.room_id });
+    //     socket.disconnect();
+
+    //   });
+
+    // useBeforeunload(() => 'You’ll lose your data!');
+
+    //useBeforeunload(() => leave_room());
+
+    function leave_room() {
+        socket.emit('act-leave', { username: username, room_id: room.room_id });
+        socket.disconnect();
+    }
+
 
 
 
@@ -95,6 +115,12 @@ export default function Lobby() {
                 router.push('https://bouncebots.eu.ngrok.io/');
             }
         });
+
+        socket.on('react-leave', data => {
+            console.log(`user leaving: ${data.username}`);
+            console.log(`room: ${data.room}`);
+            
+        })
     }, [])
 
 
@@ -130,13 +156,17 @@ export default function Lobby() {
     }
 
 
-
     return (
         <>
             <div className="px-4 py-5 my-5 text-center">
                 <h1 className="display-5 fw-bold"> Game Lobby </h1>
                 <div className="col-lg-6 mx-auto">
                     <p className="lead mb-4">Join code: {router.query.code}</p>
+                    {/* share url copy to clipboard */}
+
+
+                    
+                    
                 </div>
             <div className="col-lg-4 mx-auto">  
                 <table className="table">
@@ -174,7 +204,10 @@ export default function Lobby() {
                     <div className="col-lg-6 mx-auto">
                         <button type="button" className="btn btn-dark" onClick={startGame}>Start Game</button>  
                     </div>  : <p>Waiting for host to start game</p>}
+
             </div>
+            
+            
         </>
     );
 }

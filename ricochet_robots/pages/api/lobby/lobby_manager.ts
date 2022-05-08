@@ -154,6 +154,32 @@ const LobbyManager = (req, res) => {
           socket.broadcast.to(data.room_id).emit('react-skip', data)
         })
 
+        socket.on('act-leave', data => 
+        {
+          console.log(data.username + " leaving room: ", data.room_id);
+          
+          for (let i = 0; i < rooms.length; i++) 
+          {
+            if (rooms[i].room_id == data.room_id) 
+            {
+              //remove the user from the room
+              for (let j = 0; j < rooms[i].users.length; j++) 
+              {
+                if (rooms[i].users[j].username == data.username) 
+                {
+                  rooms[i].users.splice(j, 1);
+                  socket.broadcast.to(data.room_id).emit('react-leave', {username: data.username, room_id: data.room_id, room: rooms[i]});
+                  break;
+                }           
+              }
+            }
+            
+
+          }
+          socket.leave(data.room_id);
+        })
+
+
       })
   }
   res.end()

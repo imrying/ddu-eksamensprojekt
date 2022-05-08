@@ -9,6 +9,8 @@ import { getSession } from "next-auth/react";
 import p5Types from "p5";
 import "react-notifications/lib/notifications.css";
 import { NotificationManager } from 'react-notifications';
+import { useBeforeunload } from 'react-beforeunload';
+
 
 // Window scale factors
 var SKETCH_HEIGHT;
@@ -483,7 +485,6 @@ export default function Game(props: any)
 
     const mousePressed = (p5: any, e: MouseEvent) => 
     {
-        console.log(e.clientX, e.clientY);
         if (!HAS_MOVE_PRIVELEGE) { return; }
         RENDER = true;
         
@@ -491,7 +492,6 @@ export default function Game(props: any)
         let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY-MARGIN/2)/UNIT_LENGTH);
 
         // If you try to move a game piece
-        if (possible_moves == []) { return; }
         for (var move_pos of possible_moves)
         {
             if (mouseX == move_pos[0] && mouseY == move_pos[1])
@@ -729,6 +729,13 @@ export default function Game(props: any)
 
     const showNotification = (message) => {
         NotificationManager.error(message, 'Error', 3000);
+    }
+
+    useBeforeunload(disconnect);
+
+
+    function disconnect() {
+        socket.disconnect();
     }
 
 
