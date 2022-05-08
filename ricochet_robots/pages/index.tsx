@@ -30,51 +30,48 @@ export default function Home() {
 
       {!session ? (
 
+
         <div className="px-4 py-5 my-5 text-center">
           <h1 className="display-5 fw-bold"> Ricochet Robots</h1>
           <div className="col-lg-6 mx-auto">
             <p className="lead mb-4">A game for the mind</p>
             <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
-              <button type="button" className="btn btn-primary btn-lg px-4 gap-3" onClick={signIn}>Sign in</button>
+              <button type="button" className="btn btn-dark btn-lg px-4 gap-3" onClick={signIn}>Sign in</button>
             </div>
           </div>
         </div>
 
 
       ) : (
-        <div className="container-fluid">
-          <div className="row">
-              <div className="col-lg-4">
 
-                <div className="card m-5">
-                  <div className="card-body">
-                    <h5 className="card-title text-center">Join Lobby</h5>
+          <div className="container-fluid">
+            <div className="row">
+                <div className="col-lg-4">
 
-                    <form onSubmit={handleSubmit}>
-                      <div className="form-group">
-                        <label htmlFor="code">Code</label>
-                        <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" onChange={(e)=>{setCode(e.target.value)}} required />
-                        <small id="code" className="form-text text-muted">4 numbers only</small>
-                      </div>
-                      
-                      <button type="submit" className="btn btn-primary mx-3">Join Lobby</button>
-                    </form>
+                  <div className="bg-dark m-5 text-white rounded">
+                    <div className="card-body">
+                      <h5 className="card-title text-center">Join Lobby</h5>
 
-                    <form action="/api/lobby/create">
-
-                      <div className="form-group">
-                      </div>
-                        <button type="submit" className="btn btn-secondary m-3"> Create lobby instead </button>
-                    </form>
+                      <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                          <label htmlFor="code">Code</label>
+                          <input type="text" className="form-control" id="code" name="code" placeholder="1234" pattern="\d{4}" onChange={(e)=>{setCode(e.target.value)}} required />
+                          <small id="code" className="form-text text-muted">4 numbers only</small>
+                        </div>
+                        
+                        <button type="submit" className="btn btn-secondary my-1">Join Lobby</button>
+                        <a href="https://bouncebots.eu.ngrok.io/api/lobby/create" className="btn btn-secondary my-2 mx-2">Create Lobby</a>
+                      </form>
+                    </div>
                   </div>
-                </div>
 
-              </div>
-              <div className="col-lg-8">
-                  OGABOGA
-              </div>
+                </div>
+                <div className="col-lg-8">
+                    OGABOGA
+                </div>
+            </div>
           </div>
-        </div>
+
 
       )}
     </>

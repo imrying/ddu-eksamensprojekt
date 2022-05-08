@@ -7,6 +7,8 @@ import { game_piece, wall, highlight_piece, user} from '../classes';
 import { useRouter } from 'next/router'
 import { getSession } from "next-auth/react";
 import p5Types from "p5";
+import "react-notifications/lib/notifications.css";
+import { NotificationManager } from 'react-notifications';
 
 // Window scale factors
 var SKETCH_HEIGHT;
@@ -21,29 +23,30 @@ var BOARD_SQUARES_Y = 16;
 var SCORE_WIDTH;
 var SCORE_HEIGHT;
 
-var DIV_DISPLX = 29;
-var DIV_DISPLY = 13;
-var TOP_BAR_HEIGHT = 60;
+var DIV_DISPLX = 28;
+var DIV_DISPLY = 15;
+var TOP_BAR_HEIGHT = 65;
 
 var MARGIN = 20;
 
 var HEADER_TEXT = "";
 
+//Input
+var input_field: any;
+var vote_button: any;
+var vote_text: any;
 
+//Colors
+var colors: Array<any> = [];
+var HIGHLIGHT_COLOR_ONE;
+var HIGHLIGHT_COLOR_TWO;
 
-
-
-
-
-
-
-
-
-var HIGHLIGHT_COLOR_ONE: any;
-var HIGHLIGHT_COLOR_TWO: any;
+//Game Control
 var HAS_MOVE_PRIVELEGE = false;
-
 var IS_HOST = false;
+var SKIP = false;
+var RENDER = false;
+
 var current_bid = Infinity;
 var current_bidder = "";
 
@@ -53,11 +56,9 @@ var TIME_DEADLINE = 0;
 var COUNTDOWN = 0;
 var SHOWING_SOL = false;
 
-var colors: Array<any> = [];
-
-var input_field: any;
-
-var room_id;
+var NEW_TARGET_TIME = 90000;
+var NEW_BID_BUFFER = 10000;
+var FIRST_BID_TIME = 30000;
 
 
 // Will only import `react-p5` on client-side
@@ -66,8 +67,12 @@ const Sketch = dynamic(() => import('react-p5').then((mod) => mod.default),
   ssr: false
 });
 
-let socket: any; // socket for lobby
-socket = io();
+//socket connection
+let socket = io(); // socket for lobby
+
+var room_id;
+var username = "";
+var room: Array<any> = [];
 
 //game objects
 var gamepieces: Array<game_piece> = [];
@@ -76,55 +81,77 @@ var highlight_targets: Array<highlight_piece> = [];
 var current_target: highlight_piece; 
 
 var selected_piece: number; //piece player tries to move
-var temp_possible_moves: Array<[number, number]> = []; // possible moves the player can move
-
-var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
-
 var possible_moves: any = [];
-
-//const [username, setUsername] = useState("");
-var username = "";
-
-
-var room: Array<any> = [];
+var possible_target_pos: Array<[number, number]>;   //positions where target can spawn
 
 
 export default function Game(props: any)
 {
-
     const router = useRouter();
-  
     useEffect(() => {
         if(!router.isReady) return;
         
-
         Login().then(session => {
             if(session) {
+                //First time initilization
                 username = session.user.name;
-
                 fetch('/api/lobby/lobby_manager');
                 socket.on('connect', () => {console.log('connected') });
-
-
                 socket.on('react-client-info', data =>
                 {
                     room = [];
                     for (var u of data.users) //check if your client is the host client
                     {
-                        if (u.username == username)
+                        if (u.username == username && u.host)
                         {
-                            if (u.host)
-                            {
-                                IS_HOST = true;
-                            }
+                            IS_HOST = true;
                         }
                     }
                     for (var u of data.users)
                     {
                         room.push(new user(u.username, u.host, u.score));
                     }
-                })
-            
+                    vote_text.html(`0 / ${room.length} voted skip`);
+                });
+
+                //Game state events
+                socket.on('react-gamestate', data =>
+                {
+                    SHOWING_SOL = data;
+                });
+
+                socket.on('react-new-bid', data => {
+                    if (data.bid == -1)
+                    {
+                        current_bid = Infinity;
+                    }
+                    else {
+                        current_bid = data.bid;
+                    }
+                    if (TIME_DEADLINE - TIME < NEW_BID_BUFFER)
+                    {
+                        TIME_DEADLINE = TIME + NEW_BID_BUFFER;
+                    }
+                    if (TIME_DEADLINE - TIME > FIRST_BID_TIME)
+                    {
+                        TIME_DEADLINE = TIME + FIRST_BID_TIME;
+                    }
+                    current_bidder = data.username;
+                });
+
+                socket.on('react-give-move-privilege', data =>
+                {
+                    for (var u of room)
+                    {
+                        u.hasMovePrivilege = (u.username == data) ? true : false;
+                    }
+                    if (data == username)
+                    {
+                        HAS_MOVE_PRIVELEGE = true;
+                    }
+                });
+
+                //Movement action
                 socket.on('react-select-piece', piece_data => //Move player, [id, pos_x, pos_y]
                 {
                     if (piece_data.id != -1) //new piece is selected
@@ -137,40 +164,29 @@ export default function Game(props: any)
                         highlight_targets = [];
                         possible_moves = [];
                     }
+                    RENDER = true;
                 })
             
                 socket.on('react-move-piece', movement_data => //Move player, [id, pos_x, pos_y]
                 {
                     movePlayer(movement_data.id, movement_data.pos_x, movement_data.pos_y);
                     generate_highlight_squares(movement_data.id);
+                    RENDER = true;
                 })
             
                 socket.on('react-new-target', target_data => //Move player, [id, pos_x, pos_y]
                 {
                     HAS_MOVE_PRIVELEGE = false;
-                    TIME_DEADLINE = TIME + 45000;
+                    TIME_DEADLINE = TIME + NEW_TARGET_TIME;
                     current_target = new highlight_piece(target_data.color_id, possible_target_pos[target_data.id][0], possible_target_pos[target_data.id][1], colors[target_data.color_id]);
+                    RENDER = true;
+                    for (let u of room) {
+                        u.skip = false;
+                    }
+                    vote_button.show();
+                    vote_text.html(`0 / ${room.length} voted skip`);
                 })
-            
-                socket.on('react-new-bid', data => {
-                    if (data.bid == -1)
-                    {
-                        current_bid = Infinity;
-                    }
-                    else {
-                        current_bid = data.bid;
-                    }
-                    if (TIME_DEADLINE - TIME < 10000)
-                    {
-                        TIME_DEADLINE = TIME + 10000;
-                    }
-                    if (TIME_DEADLINE - TIME > 20000)
-                    {
-                        TIME_DEADLINE = TIME + 20000;
-                    }
-                    current_bidder = data.username;
-                })
-            
+
                 socket.on('react-give-point', data => //Give point, [username, point])
                 {
                     for (var u of room)
@@ -180,32 +196,29 @@ export default function Game(props: any)
                             u.score += data.incr;
                         }
                     }
+                    RENDER = true;
                 })
-            
-                socket.on('react-give-move-privilege', data =>
-                {
-                    for (var u of room)
-                    {
-                        u.hasMovePrivilege = (u.username == data) ? true : false;
+
+                socket.on('react-skip', data => {
+                    let count = 0;
+                    for (var u of room) {
+                        if (u.username == data.username) {
+                            u.skip = true;
+                        }
+                        count += u.skip ? 1 : 0;
                     }
-                    if (data == username)
-                    {
-                        HAS_MOVE_PRIVELEGE = true;
-                    }
-                    
+                    SKIP = (count == room.length) ? true : false;
+                    vote_text.html(`${count} / ${room.length} voted skip`);
                 })
-            
-                socket.on('react-gamestate', data =>
-                {
-                    SHOWING_SOL = data;
-                })
-                
+
+
+
                 room_id = router.query.room_id;
                 socket.emit('act-client-info', {room_id: room_id}); // ask server to send client info
             }
         })
         
-    }, [router.isReady]);
+    }, [router.isReady]); //Call everytime router changes status
 
     async function Login() {
         const session = await getSession()
@@ -214,7 +227,7 @@ export default function Game(props: any)
 
     const renderTable = (p5: any, text_size: number) =>
     {
-        let name_column_width = SCORE_WIDTH*3/5;
+        let name_column_width = SCORE_WIDTH*1/3;
         let score_column_width = 4 * text_size;
         p5.strokeWeight(1);
         p5.textStyle(p5.BOLD);
@@ -222,7 +235,7 @@ export default function Game(props: any)
 
         p5.text("Username", 0, 0);
         p5.text("score", name_column_width, 0);
-        p5.line(-MARGIN/2, MARGIN/2, name_column_width + score_column_width - MARGIN/2, MARGIN/2);
+        p5.line(-text_size/2, text_size/2, name_column_width + score_column_width - MARGIN/2, MARGIN/2);
 
         p5.textStyle(p5.NORMAL);
         
@@ -230,14 +243,11 @@ export default function Game(props: any)
         {
             p5.text(room[i-1].username, 0, text_size * 1.5 * i);
             p5.text(room[i-1].score, name_column_width, text_size * 1.5 * i);
-            p5.line(-MARGIN/2, text_size * 1.5 * i + MARGIN/2, name_column_width + score_column_width - MARGIN/2, text_size * 1.5 * i + MARGIN/2);
+            p5.line(-text_size/2, text_size * 1.5 * i + text_size/2, name_column_width + score_column_width - text_size/2, text_size * 1.5 * i + text_size/2);
         }
-        p5.line(name_column_width - MARGIN/2, MARGIN/2, name_column_width - MARGIN/2, room.length * text_size * 1.5 + MARGIN/2)
+        p5.line(name_column_width - MARGIN/2, MARGIN/2, name_column_width - MARGIN/2, room.length * text_size * 1.5 + text_size/2)
     }
-
-
     
-
     const setup = (p5: any, canvasParentRef: any) => 
     {
         //UI Scaling management
@@ -255,17 +265,12 @@ export default function Game(props: any)
         p5.createCanvas(SKETCH_WIDTH, SKETCH_HEIGHT).parent(canvasParentRef);
 
         //TIME MANAGEMENT
-        TIME_DEADLINE = p5.millis() + 45000;
-
-
-
-        
-        // Create main canvas
-
+        TIME_DEADLINE = p5.millis() + NEW_TARGET_TIME;
+    
         // COLOR INITILIZATION
         colors = [p5.color(255,0,0), p5.color(0,255,0), p5.color(0,0,255), p5.color(255,255,0)];
-        HIGHLIGHT_COLOR_ONE = p5.color(0,0,0,70);
-        HIGHLIGHT_COLOR_TWO = p5.color(150,150,150,70);
+        HIGHLIGHT_COLOR_ONE = p5.color(0,0,0,150);
+        HIGHLIGHT_COLOR_TWO = p5.color(0,0,0,80);
 
         possible_moves = [];
 
@@ -312,14 +317,93 @@ export default function Game(props: any)
         //Bidding button
         let button;
         button = p5.createElement('button', 'Submit Bid').parent(canvasParentRef);
-        button.style('background-color', '#0d6efd');
-        button.style('color', '#ffffff');
-        button.style('border-radius', '5px');
+        button.style('background-color', '#212529');
+        button.style('color', '#FFFFFF');
+        button.style('padding', '10px');
+        button.style('border', 'none');
+        button.style('border-radius', '6px');
         button.style('font-size', '16px');
-        button.position(DIV_DISPLX + MARGIN + BOARD_WIDTH, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 100);
+        button.position(DIV_DISPLX + MARGIN + BOARD_WIDTH, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 130);
         button.mousePressed(submit_bid);
-        input_field = p5.createInput().parent(canvasParentRef);
-        input_field.position(DIV_DISPLX + MARGIN + BOARD_WIDTH, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 50);
+
+        input_field = p5.createInput().parent(canvasParentRef).attribute('placeholder', 'Bid (eg. 3)');
+        input_field.style('background-color', '#212529');
+        input_field.style('color', '#FFFFFF');
+        input_field.style('border', 'none');
+        input_field.style('padding', '10px');
+        input_field.style('width', '230px');
+        input_field.style('border-radius', '6px');
+        input_field.position(DIV_DISPLX + MARGIN + BOARD_WIDTH, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 60);
+
+
+        // skip button
+        vote_button = p5.createElement('button', 'Skip').parent(canvasParentRef);
+        vote_button.style('background-color', '#212529');
+        vote_button.style('color', '#FFFFFF');
+        vote_button.style('padding', '10px');
+        vote_button.style('border', 'none');
+        vote_button.style('width', '100px');
+        vote_button.style('border-radius', '6px');
+        vote_button.style('font-size', '16px');
+        vote_button.position(DIV_DISPLX + MARGIN + BOARD_WIDTH + 130, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 130);
+        vote_button.mousePressed(skip);
+
+        // Skip text
+        vote_text = p5.createElement('h5', `0 / ${room.length}`).parent(canvasParentRef);
+        vote_text.style('color', '#000000');
+        vote_text.position(DIV_DISPLX + MARGIN + BOARD_WIDTH + 250, TOP_BAR_HEIGHT + DIV_DISPLY + MARGIN + BOARD_HEIGHT - 120);
+        RENDER = true; //Render on first frame
+    }
+
+    const draw = (p5: any) =>
+    {
+        TIME = p5.millis();
+        if (COUNTDOWN != Math.ceil((TIME_DEADLINE-TIME)/1000)) //If the timer changed, rerender
+        {
+            RENDER = true;
+            COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
+            if ((COUNTDOWN == 0 || SKIP) && !SHOWING_SOL && IS_HOST) // If the time ran out
+            {
+                SKIP = false;
+                if (current_bid == Infinity) //If noone found a solution
+                {
+                    select_new_target();
+                    TIME_DEADLINE = TIME + NEW_TARGET_TIME;
+                    COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
+                    for (let u of room) {
+                        u.skip = false;
+                    }
+                    vote_button.show();
+                    vote_text.html(`0 / ${room.length} voted skip`);
+                }
+                else { //If someone found a solution
+                    SHOWING_SOL = true;
+                    socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
+                    socket.emit('act-give-move-privilege', {room_id: room_id, current_bidder: current_bidder});
+                    for (var u of room)
+                    {
+                        u.hasMovePrivilege = (u.username == current_bidder) ? true : false;
+                    }
+                    if (current_bidder == username)
+                    {
+                        HAS_MOVE_PRIVELEGE = true;
+                    }
+                }
+            }
+        }
+        if (RENDER)
+        {
+            RENDER = false;
+            render(p5);
+        }
+    }
+
+    const render = (p5: any) =>
+    {
+        //RENDERING
+        p5.background(192, 192, 192);
+        render_gameboard(p5);
+        render_scoreboard(p5); 
     }
 
     const render_gameboard = (p5: any) =>
@@ -343,7 +427,7 @@ export default function Game(props: any)
     const render_scoreboard = (p5: any) =>
     {
         p5.push();
-        let text_size = 0.14*SCORE_WIDTH-22; //found in geogebra
+        let text_size = 0.08*SCORE_WIDTH-22; //found in geogebra
         p5.translate(BOARD_WIDTH + 3*MARGIN/2, MARGIN/2+text_size);
         p5.textSize(text_size);
         p5.text(HEADER_TEXT, 0, 0);
@@ -359,6 +443,12 @@ export default function Game(props: any)
         {
             HEADER_TEXT = "BIDDING STAGE";
             p5.text("Timer: " + COUNTDOWN.toString() + "s", 0, 0);
+
+            if (current_bid != Infinity) {
+                // Vote skip here
+                skip
+            }
+                
             text_size = text_size / 2;
             p5.textSize(text_size);
             p5.translate(0, text_size + 1 * MARGIN);
@@ -376,70 +466,12 @@ export default function Game(props: any)
         p5.pop();
     }
 
-    const select_new_target = (p5: any) =>
+    const select_new_target = () =>
     {
         let random_index = get_random_index(); //GET
         let color_id = Math.floor(Math.random() * 4);
         current_target = new highlight_piece(color_id, possible_target_pos[random_index][0], possible_target_pos[random_index][1], colors[color_id]);
         socket.emit('act-new-target', {room_id: room_id, id: random_index, color_id: color_id});
-    }
-
-    const draw = (p5: any) =>
-    {
-        TIME = p5.millis();
-        COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
-
-        if (TIME_DEADLINE < TIME && !SHOWING_SOL && IS_HOST)
-        {
-            if (current_bid != Infinity)
-            {
-                SHOWING_SOL = true;
-                socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
-                socket.emit('act-give-move-privilege', {room_id: room_id, current_bidder: current_bidder});
-                for (var u of room)
-                {
-                    u.hasMovePrivilege = (u.username == current_bidder) ? true : false;
-                }
-                if (current_bidder == username)
-                {
-                    HAS_MOVE_PRIVELEGE = true;
-                }
-            }
-            else {
-                select_new_target(p5);
-                TIME_DEADLINE = TIME + 45000;
-            }
-        }
-
-        if (IS_HOST && current_bid == 0 && SHOWING_SOL)
-        {
-            SHOWING_SOL = false;
-            socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
-            for (var u of room)
-            {
-                if (u.hasMovePrivilege)
-                {
-                    u.score -= 1;
-                    socket.emit('act-give-point', {room_id: room_id, username: u.username, incr: -1});
-                }
-            }
-            socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
-            current_bid = Infinity;
-            current_bidder = "";
-            select_new_target(p5);
-            TIME_DEADLINE = TIME + 45000;
-            for (var u of room)
-            {
-                u.hasMovePrivilege = false;
-            }
-            HAS_MOVE_PRIVELEGE = false;
-        }
-
-        p5.background(255, 255, 255);
-
-        //RENDERING
-        render_gameboard(p5);
-        render_scoreboard(p5); 
     }
 
     const keyPressed = (p5: any, e: KeyboardEvent) => {
@@ -451,12 +483,14 @@ export default function Game(props: any)
 
     const mousePressed = (p5: any, e: MouseEvent) => 
     {
+        console.log(e.clientX, e.clientY);
         if (!HAS_MOVE_PRIVELEGE) { return; }
-        let mouseX = Math.floor((e.clientX-DIV_DISPLX)/UNIT_LENGTH);
-        let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY)/UNIT_LENGTH);
+        RENDER = true;
+        
+        let mouseX = Math.floor((e.clientX-DIV_DISPLX-MARGIN/2)/UNIT_LENGTH);
+        let mouseY = Math.floor((e.clientY-TOP_BAR_HEIGHT-DIV_DISPLY-MARGIN/2)/UNIT_LENGTH);
 
         // If you try to move a game piece
-
         if (possible_moves == []) { return; }
         for (var move_pos of possible_moves)
         {
@@ -464,6 +498,7 @@ export default function Game(props: any)
             {
                 movePlayer(selected_piece, mouseX, mouseY);
                 socket.emit('act-move-piece', {room_id: room_id, id: selected_piece, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
+                current_bid += (IS_HOST) ? 0 : -1; //if is host dont double subtract
                 generate_highlight_squares(selected_piece);
                 return;
             }
@@ -492,33 +527,38 @@ export default function Game(props: any)
         g.pos_x = pos_x;
         g.pos_y = pos_y;   
 
-        // If your host, and a target is "hit" select a new target.
-        if (IS_HOST && pos_x == current_target.pos_x && pos_y == current_target.pos_y && current_target.id == g.id)
+        if (IS_HOST)
         {
-            SHOWING_SOL = false;
-            socket.emit('act-gamestate', {SHOWING_SOL: SHOWING_SOL, room_id: room_id});
-            for (var u of room)
+            current_bid--;
+            if ((pos_x == current_target.pos_x && pos_y == current_target.pos_y && current_target.id == g.id) || current_bid == 0) //If player hit a target
             {
-                if (u.hasMovePrivilege)
+                SHOWING_SOL = false;
+                socket.emit('act-gamestate', {SHOWING_SOL: SHOWING_SOL, room_id: room_id});
+                let increment = (pos_x == current_target.pos_x && pos_y == current_target.pos_y && current_target.id == g.id) ? 1 : -1; //1 if target is hit else -1
+                for (var u of room)
                 {
-                    u.score += 1;
-                    socket.emit('act-give-point', {room_id: room_id, username: u.username, incr: +1});
+                    if (u.hasMovePrivilege)
+                    {
+                        u.score += increment;
+                        socket.emit('act-give-point', {room_id: room_id, username: u.username, incr: increment});
+                        u.hasMovePrivilege = false;
+                    }
                 }
+                socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
+                current_bid = Infinity;
+                current_bidder = "";
+                select_new_target();
+                HAS_MOVE_PRIVELEGE = false;
+                TIME_DEADLINE = TIME + NEW_TARGET_TIME;
+                for (let u of room) {
+                    u.skip = false;
+                }
+                vote_button.show();
+                vote_text.html(`0 / ${room.length} voted skip`);
             }
-            socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
-            current_bid = Infinity;
-            current_bidder = "";
 
-            select_new_target(p5);
-            TIME_DEADLINE = TIME + 45000;
-            for (var u of room)
-            {
-                u.hasMovePrivilege = false;
-            }
-            HAS_MOVE_PRIVELEGE = false;
         }
-        current_bid--;
-
+        RENDER = true;
     }
 
     function get_random_index()
@@ -576,6 +616,7 @@ export default function Game(props: any)
                 possible_moves.push([move[0], move[1]]);
             }
         }
+        RENDER = true;
     }
     
     function get_move_pos(idx: number, incr_x: number, incr_y: number) 
@@ -633,14 +674,21 @@ export default function Game(props: any)
             return;
         }
         var reg = /^\d+$/;
-        if (!reg.test(input_field.value())) {
-            console.log("Bid is not a number")
+        if (!reg.test(input_field.value()))
+        {
+            showNotification('Bid is not a number');
             return; //can only submit positive integers.
         }
         let value = Number(input_field.value())     
+        if (value == 0)
+        {
+            showNotification('You cannot bid 0');
+            return;
+        }
         
-        if ( value >= current_bid || value == 0) {
-            console.log("Bid is not the better than the current bid");
+        if ( value >= current_bid)
+        {
+            showNotification('Bid is not better than the current bid');
             return;
         }
 
@@ -653,29 +701,50 @@ export default function Game(props: any)
         {
             u.hasMovePrivilege = (u.username == username) ? true : false;
         }
-        if (TIME_DEADLINE - TIME < 10000)
+        if (TIME_DEADLINE - TIME < NEW_BID_BUFFER)
         {
-            TIME_DEADLINE = TIME + 10000;
+            TIME_DEADLINE = TIME + NEW_BID_BUFFER;
         }
 
-        if (TIME_DEADLINE - TIME > 20000)
+        if (TIME_DEADLINE - TIME > FIRST_BID_TIME)
         {
-            TIME_DEADLINE = TIME + 20000;
+            TIME_DEADLINE = TIME + FIRST_BID_TIME;
         }
     }
+
+    function skip()
+    {
+        socket.emit('act-skip', {room_id: room_id, username: username});
+        let count = 0;
+        for (var u of room) {
+            if (u.username == username) {
+                u.skip = true;
+            }
+            count += u.skip ? 1 : 0;
+        }
+        SKIP = (count == room.length) ? true : false;
+        vote_button.hide();
+        vote_text.html(`${count} / ${room.length} voted skip`);
+    }
+
+    const showNotification = (message) => {
+        NotificationManager.error(message, 'Error', 3000);
+    }
+
 
 
     //return the given sketch
     return (
-        <div className="container-fluid">
-            <div className="row">
-                <div className="col-lg-7">
-                    <div className="m-3">
-                        <Sketch setup={setup} draw={draw} mousePressed={mousePressed} keyPressed={keyPressed}/>
+            <div className="container-fluid">
+                <div className="row">
+                    <div className="col-lg-7">
+                        <div className="m-3">
+                            <Sketch setup={setup} draw={draw} mousePressed={mousePressed} keyPressed={keyPressed}/>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div> 
+            </div> 
+ 
         )
 
 }

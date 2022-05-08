@@ -5,6 +5,7 @@ import { Server } from 'socket.io'
 interface User {
   username: string,
   host: boolean,
+  skip: boolean,
   score: number,
 }
 
@@ -53,7 +54,7 @@ const LobbyManager = (req, res) => {
           }
           // if room doesent exist create new room
           if (!room_exists) {
-            let user_host: User = { username: data.username, host: true, score: 0 }
+            let user_host: User = { username: data.username, host: true, score: 0, skip: false }
             rooms.push({
               room_id: data.room_id,
               //socket: socket,
@@ -75,7 +76,7 @@ const LobbyManager = (req, res) => {
             if (usernames.includes(data.username)) { 
               io.in(data.room_id).emit('update-room', {room: rooms[index]});
             } else {
-              let user: User = { username: data.username, host: false, score: 0 };
+              let user: User = { username: data.username, host: false, score: 0, skip: false };
               rooms[index].users.push(user)
               io.in(data.room_id).emit('update-room', {room: rooms[index], user: user});
             }
@@ -118,9 +119,6 @@ const LobbyManager = (req, res) => {
           }
         })
 
-        socket.on('CS-test', () => {
-          console.log("CS_TEST");
-        })
 
         //Game Mechanism
         socket.on('act-move-piece', data => {
@@ -132,7 +130,6 @@ const LobbyManager = (req, res) => {
         })
 
         socket.on('act-new-target', data => {
-          console.log("act new target");
           socket.broadcast.to(data.room_id).emit('react-new-target', data);
 
         })
@@ -145,18 +142,16 @@ const LobbyManager = (req, res) => {
           socket.broadcast.to(data.room_id).emit('react-give-point', data);
         })
 
-        socket.on('act-test', data => {
-          console.log("ACT TEST SERVER SIDE", data);
-          socket.broadcast.to(data.room_id).emit('react-test', data);
-          //socket.broadcast.emit('react-test', data);
-        })
-
         socket.on('act-give-move-privilege', data => {
           socket.broadcast.to(data.room_id).emit('react-give-move-privilege', data.current_bidder);
         })
 
         socket.on('act-gamestate', data => {
           socket.broadcast.to(data.room_id).emit('react-gamestate', data.SHOWING_SOL);
+        })
+
+        socket.on('act-skip', data => {
+          socket.broadcast.to(data.room_id).emit('react-skip', data)
         })
 
       })

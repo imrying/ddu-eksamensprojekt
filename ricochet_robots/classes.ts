@@ -69,6 +69,7 @@ export class user {
     username : string;
     ishost : boolean;
     hasMovePrivilege : boolean;
+    skip: boolean;
     score : number;
 
     constructor(username : string, ishost : boolean, score : number) {
@@ -76,5 +77,6 @@ export class user {
         this.ishost = ishost;
         this.score = score;
         this.hasMovePrivilege = false;
+        this.skip = false;
     }
 }

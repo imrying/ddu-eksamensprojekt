@@ -6,6 +6,10 @@ import { useRouter } from 'next/router'
 import { renderToHTML } from 'next/dist/server/render';
 import React from 'react';
 import { getSession } from "next-auth/react";
+import "react-notifications/lib/notifications.css";
+import { NotificationManager } from 'react-notifications';
+
+
 
 
 const socket = io(); // socket for lobby
@@ -18,6 +22,12 @@ export default function Lobby() {
     const [users, setUsers] = useState([])
     const [room, setRoom] = useState([])
     const [user, setUser] = useState({})
+
+    const showNotification = (username) => {
+        NotificationManager.success(`${username} joined the room`, 'New player!', 3000);
+    }
+
+
 
     useEffect(() => {
         if(!router.isReady) return;
@@ -66,6 +76,9 @@ export default function Lobby() {
             for (let i = 0; i < data.room.users.length; i++) {
                 users.push(data.room.users[i].username);
             }
+            if (users[users.length-1] != username) {
+                showNotification(users[users.length-1]);
+            }
             
             setRoom(data.room);
             setUsers(users);
@@ -73,7 +86,7 @@ export default function Lobby() {
 
         socket.on("react-start-game", data => {
             socket.disconnect();
-            router.push('/game2' + '?room_id=' + data.room_id);
+            router.push('/game' + '?room_id=' + data.room_id);
         });
 
         socket.on('react-remove-self', data => {
@@ -121,10 +134,10 @@ export default function Lobby() {
     return (
         <>
             <div className="px-4 py-5 my-5 text-center">
-            <h1 className="display-5 fw-bold"> Game Lobby </h1>
-            <div className="col-lg-6 mx-auto">
-                <p className="lead mb-4">Join code: {router.query.code}</p>
-            </div>
+                <h1 className="display-5 fw-bold"> Game Lobby </h1>
+                <div className="col-lg-6 mx-auto">
+                    <p className="lead mb-4">Join code: {router.query.code}</p>
+                </div>
             <div className="col-lg-4 mx-auto">  
                 <table className="table">
                     <thead>
@@ -132,30 +145,24 @@ export default function Lobby() {
                         <th scope="col">#</th>
                         <th scope="col">Name</th>
                         {isHost() ? <th scope="col">Remove</th> : null}
-                        
                         </tr>
                     </thead>
                     <tbody>
                         {users.map((user, index) => {
                             return (
-                                <tr key={index}>
+                                <tr key={index} className="border-dark">
                                     <th scope="row">{index+1}</th>
                                     <td>{user}</td>
 
                                     {isHost() ? <>
                                         {index != 0 ?
                                             <td>
-                                                <button className="btn btn-danger" onClick={() => {
+                                                <button className="btn text-white" style={{backgroundColor: "#5e0908"}} onClick={() => {
                                                    socket.emit('act-remove-user', {room_id: room.room_id, username: room.users[index].username });
                                                 }}>Remove</button>
-
-
                                             </td>
                                         : null}
-
                                     </> : null}
-
-
                                 </tr>
                             )
                         })}
@@ -165,7 +172,7 @@ export default function Lobby() {
                 
                 {isHost() ? 
                     <div className="col-lg-6 mx-auto">
-                        <button type="button" className="btn btn-primary" onClick={startGame}>Start Game</button>  
+                        <button type="button" className="btn btn-dark" onClick={startGame}>Start Game</button>  
                     </div>  : <p>Waiting for host to start game</p>}
             </div>
         </>
