@@ -500,7 +500,6 @@ export default function Game(props: any)
             {
                 movePlayer(selected_piece, mouseX, mouseY);
                 socket.emit('act-move-piece', {room_id: room_id, id: selected_piece, pos_x: mouseX, pos_y: mouseY}); //Tell server player has moved
-                current_bid += (IS_HOST) ? 0 : -1; //if is host dont double subtract
                 generate_highlight_squares(selected_piece);
                 return;
             }
@@ -529,9 +528,10 @@ export default function Game(props: any)
         g.pos_x = pos_x;
         g.pos_y = pos_y;   
 
+        current_bid--;
+
         if (IS_HOST)
         {
-            current_bid--;
             if ((pos_x == current_target.pos_x && pos_y == current_target.pos_y && current_target.id == g.id) || current_bid == 0) //If player hit a target
             {
                 SHOWING_SOL = false;
