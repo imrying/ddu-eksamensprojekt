@@ -139,6 +139,7 @@ export default function Game(props: any)
                         TIME_DEADLINE = TIME + FIRST_BID_TIME;
                     }
                     current_bidder = data.username;
+                    RENDER = true;
                 });
 
                 socket.on('react-give-move-privilege', data =>
@@ -151,6 +152,7 @@ export default function Game(props: any)
                     {
                         HAS_MOVE_PRIVELEGE = true;
                     }
+                    RENDER = true;
                 });
 
                 //Movement action
@@ -187,6 +189,7 @@ export default function Game(props: any)
                     }
                     vote_button.show();
                     vote_text.html(`0 / ${room.length} voted skip`);
+                    RENDER = true;
                 })
 
                 socket.on('react-give-point', data => //Give point, [username, point])
@@ -211,9 +214,8 @@ export default function Game(props: any)
                     }
                     SKIP = (count == room.length) ? true : false;
                     vote_text.html(`${count} / ${room.length} voted skip`);
+                    RENDER = true;
                 })
-
-
 
                 room_id = router.query.room_id;
                 socket.emit('act-client-info', {room_id: room_id}); // ask server to send client info
@@ -725,6 +727,7 @@ export default function Game(props: any)
         SKIP = (count == room.length) ? true : false;
         vote_button.hide();
         vote_text.html(`${count} / ${room.length} voted skip`);
+        RENDER = true;
     }
 
     const showNotification = (message) => {

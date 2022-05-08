@@ -8,7 +8,6 @@ import { game_piece, wall, highlight_piece, user} from '../classes';
 import p5Types from "p5";
 
 
-
 import {useRouter} from 'next/router'
 import {useState} from 'react'
 import { BackgroundImage } from '@mantine/core'
@@ -286,6 +285,7 @@ export default function Home() {
     return [current_x, current_y];
   }
 
+
   return (
     <>
       <Head>
@@ -294,21 +294,7 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      {!session ? (
-
-
-        <div className="px-4 py-5 my-5 text-center">
-          <h1 className="display-5 fw-bold"> Ricochet Robots</h1>
-          <div className="col-lg-6 mx-auto">
-            <p className="lead mb-4">A game for the mind</p>
-            <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
-              <button type="button" className="btn btn-dark btn-lg px-4 gap-3" onClick={signIn}>Sign in</button>
-            </div>
-          </div>
-        </div>
-
-
-      ) : (
+      {session ? ( <>
 
           <div className="container-fluid">
             <div className="row">
@@ -339,12 +325,19 @@ export default function Home() {
             </div>
           </div>
 
-
-      )}
+      </>
+      ) : <>
+        <div className="px-4 py-5 my-5 text-center">
+            <h1 className="display-5 fw-bold"> Ricochet Robots</h1>
+        <div className="col-lg-6 mx-auto">
+          <p className="lead mb-4">A game for the mind</p>
+          <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <button type="button" className="btn btn-dark btn-lg px-4 gap-3" onClick={signIn}>Sign in</button>
+          </div>
+        </div>
+      </div>
+      </>
+      }
     </>
-
   );
 }
-
-
-
