@@ -239,7 +239,7 @@ export default function Game(props: any)
 
         p5.text("Username", 0, 0);
         p5.text("score", name_column_width, 0);
-        p5.line(-text_size/2, text_size/2, name_column_width + score_column_width - MARGIN/2, MARGIN/2);
+        p5.line(-text_size/2, text_size/2, name_column_width + score_column_width - text_size/2, text_size/2);
 
         p5.textStyle(p5.NORMAL);
         
@@ -249,7 +249,7 @@ export default function Game(props: any)
             p5.text(room[i-1].score, name_column_width, text_size * 1.5 * i);
             p5.line(-text_size/2, text_size * 1.5 * i + text_size/2, name_column_width + score_column_width - text_size/2, text_size * 1.5 * i + text_size/2);
         }
-        p5.line(name_column_width - MARGIN/2, MARGIN/2, name_column_width - MARGIN/2, room.length * text_size * 1.5 + text_size/2)
+        p5.line(name_column_width - text_size/2, text_size/2, name_column_width - text_size/2, room.length * text_size * 1.5 + text_size/2)
     }
     
     const setup = (p5: any, canvasParentRef: any) => 
