@@ -113,7 +113,10 @@ export default function Game(props: any)
                     {
                         room.push(new user(u.username, u.host, u.score));
                     }
-                    vote_text.html(`0 / ${room.length} voted skip`);
+                    if (vote_text != undefined)
+                    {
+                        vote_text.html(`0 / ${room.length} voted skip`);
+                    }
                 });
 
                 //Game state events
@@ -144,6 +147,7 @@ export default function Game(props: any)
 
                 socket.on('react-give-move-privilege', data =>
                 {
+                    showNotification(`${data} showing his solution`, "info");
                     for (var u of room)
                     {
                         u.hasMovePrivilege = (u.username == data) ? true : false;
@@ -190,10 +194,22 @@ export default function Game(props: any)
                     vote_button.show();
                     vote_text.html(`0 / ${room.length} voted skip`);
                     RENDER = true;
+                    if (target_data.msg == "skip")
+                    {
+                        showNotification('Skipping to next target', "info");
+                    }
                 })
 
                 socket.on('react-give-point', data => //Give point, [username, point])
                 {
+                    if (data.incr == 1)
+                    {
+                        showNotification(`${current_bidder} earned 1 point!`, "success");
+                    }
+                    else if (data.incr == -1)
+                    {
+                        showNotification(`${current_bidder} lost 1 point!`, "info");
+                    }
                     for (var u of room)
                     {
                         if (u.username == data.username)
@@ -372,8 +388,8 @@ export default function Game(props: any)
                 SKIP = false;
                 if (current_bid == Infinity) //If noone found a solution
                 {
-                    showNotification('Skipping to next target');
-                    select_new_target();
+                    showNotification('Skipping to next target', "info");
+                    select_new_target("skip");
                     TIME_DEADLINE = TIME + NEW_TARGET_TIME;
                     COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
                     for (let u of room) {
@@ -384,7 +400,7 @@ export default function Game(props: any)
                 }
                 else { //If someone found a solution
                     SHOWING_SOL = true;
-                    showNotification(`${current_bidder} showing his solution`);
+                    showNotification(`${current_bidder} showing his solution`, "info");
                     socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
                     socket.emit('act-give-move-privilege', {room_id: room_id, current_bidder: current_bidder});
                     for (var u of room)
@@ -473,12 +489,12 @@ export default function Game(props: any)
         p5.pop();
     }
 
-    const select_new_target = () =>
+    const select_new_target = (message: string) =>
     {
         let random_index = get_random_index(); //GET
         let color_id = Math.floor(Math.random() * 4);
         current_target = new highlight_piece(color_id, possible_target_pos[random_index][0], possible_target_pos[random_index][1], colors[color_id]);
-        socket.emit('act-new-target', {room_id: room_id, id: random_index, color_id: color_id});
+        socket.emit('act-new-target', {room_id: room_id, id: random_index, color_id: color_id, msg: message});
     }
 
     const keyPressed = (p5: any, e: KeyboardEvent) => {
@@ -546,13 +562,21 @@ export default function Game(props: any)
                     {
                         u.score += increment;
                         socket.emit('act-give-point', {room_id: room_id, username: u.username, incr: increment});
+                        if (increment == 1)
+                        {
+                            showNotification(`${current_bidder} earned 1 point!`, "success");
+                        }
+                        else if (increment == -1)
+                        {
+                            showNotification(`${current_bidder} lost 1 point!`, "info");
+                        }
                         u.hasMovePrivilege = false;
                     }
                 }
                 socket.emit('act-new-bid', {room_id: room_id, bid: -1, username: ""}); //Tell server player has moved   
                 current_bid = Infinity;
                 current_bidder = "";
-                select_new_target();
+                select_new_target("");
                 HAS_MOVE_PRIVELEGE = false;
                 TIME_DEADLINE = TIME + NEW_TARGET_TIME;
                 for (let u of room) {
@@ -681,19 +705,45 @@ export default function Game(props: any)
         var reg = /^\d+$/;
         if (!reg.test(input_field.value()))
         {
-            showNotification('Bid is not a number');
+            showNotification('Bid is not a number', "error");
             return; //can only submit positive integers.
         }
         let value = Number(input_field.value())     
         if (value == 0)
         {
-            showNotification('You cannot bid 0');
+            showNotification('You cannot bid 0', "error");
             return;
         }
         
-        if ( value >= current_bid)
+        if (value == current_bid)
         {
-            showNotification('Bid is not better than the current bid');
+            console.log("Heoll");
+            let local_score = 0;
+            let bidder_score = 0;
+            for (var u of room)
+            {
+                console.log(u);
+                if (u.username == username)
+                {
+                    local_score = u.score;
+                }
+                if (u.username == current_bidder)
+                {
+                    bidder_score = u.score;
+                }
+            }
+            console.log("Score");
+            console.log(local_score);
+            console.log(bidder_score);
+            if (local_score >= bidder_score)
+            {
+                showNotification('Bid is not better than the current bid', "error");
+                return;
+            }
+        }
+        if (value > current_bid)
+        {
+            showNotification('Bid is not better than the current bid', "error");
             return;
         }
 
@@ -733,8 +783,19 @@ export default function Game(props: any)
         RENDER = true;
     }
 
-    const showNotification = (message) => {
-        NotificationManager.error(message, 'Error', 3000);
+    const showNotification = (message, type) => {
+        if (type == "error")
+        {
+            NotificationManager.error(message, 'Error', 3000);
+        }
+        else if (type == "info")
+        {
+            NotificationManager.info(message, '', 3000);
+        }
+        else if (type == "success")
+        {
+            NotificationManager.success(message, '', 3000);
+        }
     }
 
     useBeforeunload(disconnect);
