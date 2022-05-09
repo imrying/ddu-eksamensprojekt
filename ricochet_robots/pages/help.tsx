@@ -28,7 +28,7 @@ export default function Home() {
                 <link rel="icon" href="/favicon.ico" />
             </Head>
 
-            <div className="px-4 py-5 my-5 text-center">
+            <div className="px-4 py-1 my-5 text-center">
                 <h1 className="display-5 fw-bold"> Help</h1>
                 <div className="col-lg-6 mx-auto w-25">
                     <p className="lead mb-2"><b>Ricochet Robots Regler</b></p>
@@ -36,6 +36,8 @@ export default function Home() {
                     <p className="">Robotterne kan gå i alle retninger, men har man først valgt en retning, fortsætter brikken indtil den støder på en væg. <b/> Derudover er det ikke muligt at gå igennem de andre robotter.</p>
                     <p className="">Under spillet sidder alle spillerne og kigger på pladen, og så skal man forestille sig en løsning i hovedet - uden at kunne bevæge brikkerne. Når man så finder en løsning melder man det antal træk løsningen tager, og når tiden er gået, vil den spiller med den bedste melding vise sin løsning. Er denne løsning forkert vil spilleren få et minus point, ellers får han et plus point.</p>
                     <p className=""></p>
+                    <br/><br/><br/>
+
                 </div>
             </div>
         </>

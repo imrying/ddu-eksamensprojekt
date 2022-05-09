@@ -14,7 +14,7 @@ export default function MyApp({
 }: AppProps): JSX.Element {
   return (
 
-    <div style={{backgroundColor: "#c0c0c0", height:"100vh"}}>
+    <div style={{backgroundColor: "#c0c0c0", minHeight:"100vh"}}>
     <SessionProvider session={session}>
       <NavBar/>
       <NotificationContainer />

@@ -705,7 +705,7 @@ export default function Game(props: any)
         var reg = /^\d+$/;
         if (!reg.test(input_field.value()))
         {
-            showNotification('Bid is not a number', "error");
+            showNotification('Bid is not valid', "error");
             return; //can only submit positive integers.
         }
         let value = Number(input_field.value())     
