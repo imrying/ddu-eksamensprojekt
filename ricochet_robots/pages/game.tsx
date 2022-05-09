@@ -368,9 +368,11 @@ export default function Game(props: any)
             COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
             if ((COUNTDOWN == 0 || SKIP) && !SHOWING_SOL && IS_HOST) // If the time ran out
             {
+
                 SKIP = false;
                 if (current_bid == Infinity) //If noone found a solution
                 {
+                    showNotification('Skipping to next target');
                     select_new_target();
                     TIME_DEADLINE = TIME + NEW_TARGET_TIME;
                     COUNTDOWN = Math.ceil((TIME_DEADLINE-TIME)/1000);
@@ -382,6 +384,7 @@ export default function Game(props: any)
                 }
                 else { //If someone found a solution
                     SHOWING_SOL = true;
+                    showNotification(`${current_bidder} showing his solution`);
                     socket.emit('act-gamestate', {room_id: room_id, SHOWING_SOL: SHOWING_SOL});
                     socket.emit('act-give-move-privilege', {room_id: room_id, current_bidder: current_bidder});
                     for (var u of room)
