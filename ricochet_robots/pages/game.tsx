@@ -717,7 +717,6 @@ export default function Game(props: any)
         
         if (value == current_bid)
         {
-            console.log("Heoll");
             let local_score = 0;
             let bidder_score = 0;
             for (var u of room)
@@ -818,7 +817,6 @@ export default function Game(props: any)
                     </div>
                 </div>
             </div> 
- 
         )
 
 }
