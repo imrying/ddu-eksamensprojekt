@@ -331,7 +331,9 @@ export default function Home() {
             <h1 className="display-5 fw-bold"> Ricochet Robots</h1>
         <div className="col-lg-6 mx-auto">
           <p className="lead mb-4">A game for the mind</p>
+          <small className="text-muted mb-2"> We only save your name, email and profile picture </small>
           <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            
             <button type="button" className="btn btn-dark btn-lg px-4 gap-3" onClick={signIn}>Sign in</button>
           </div>
         </div>
