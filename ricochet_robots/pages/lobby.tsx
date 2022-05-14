@@ -29,17 +29,6 @@ export default function Lobby() {
         NotificationManager.success(`${username} joined the room`, 'New player!', 3000);
     }
 
-    // useBeforeunload((event) => {
-    //     alert('You are leaving the room')
-    //     useBeforeunload((event) => {
-    //     socket.emit('act-leave', { username: username, room_id: room.room_id });
-    //     socket.disconnect();
-
-    //   });
-
-    // useBeforeunload(() => 'You’ll lose your data!');
-
-    //useBeforeunload(() => leave_room());
 
     function leave_room() {
         socket.emit('act-leave', { username: username, room_id: room.room_id });
@@ -78,8 +67,7 @@ export default function Lobby() {
                 let room_id = router.query.code;
 
                 socketInitializer();
-        
-                // console.log("ROOM: " + room_id);
+
                 socket.emit('join-room', {room_id: room_id, username: username});
             }
         })
@@ -128,7 +116,7 @@ export default function Lobby() {
         for (let i = 0; i < room.users.length; i++) {
             if (room.users[i].host) {
                 if (user == room.users[i].username) {
-                    //console.log(room.room_id)
+
                     socket.emit('act-start-game', {room_id: room.room_id}); 
                 }
             }
@@ -145,7 +133,7 @@ export default function Lobby() {
         for (let i = 0; i < room.users.length; i++) {
             if (room.users[i].host) {
                 if (user == room.users[i].username) {
-                    //console.log(room.room_id)
+
                     return true;
                 }
                 else {
@@ -161,11 +149,7 @@ export default function Lobby() {
             <div className="px-4 py-5 my-5 text-center">
                 <h1 className="display-5 fw-bold"> Game Lobby </h1>
                 <div className="col-lg-6 mx-auto">
-                    <p className="lead mb-4">Join code: {router.query.code}</p>
-                    {/* share url copy to clipboard */}
-
-
-                    
+                    <p className="lead mb-4">Join code: {router.query.code}</p>                  
                     
                 </div>
             <div className="col-lg-4 mx-auto">  

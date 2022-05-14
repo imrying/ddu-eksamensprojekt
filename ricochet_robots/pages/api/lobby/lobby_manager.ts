@@ -1,7 +1,5 @@
 import { Server } from 'socket.io'
 
-// var rooms = [];
-
 interface User {
   username: string,
   host: boolean,
@@ -11,7 +9,6 @@ interface User {
 
 interface Room {
   room_id: string,
-  //socket: number,
   users: User[]
 }
 
